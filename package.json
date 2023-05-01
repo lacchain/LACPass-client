@@ -78,7 +78,7 @@
     "express-rate-limit": "^6.3.0",
     "helmet": "^5.0.2",
     "jsonwebtoken": "^9.0.0",
-    "lacpass-identity": "^0.0.8",
+    "lacpass-identity": "^0.0.10",
     "morgan": "^1.10.0",
     "multer": "^1.4.4",
     "nodemailer": "^6.7.3",

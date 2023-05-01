@@ -4,14 +4,17 @@ import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
-export const log4TSProvider = Log4TSProvider.createProvider('Log4ProviderOrchestrator', {
-  level: LogLevel.Debug,
-  groups: [
-    {
-      expression: new RegExp('.+')
-    }
-  ]
-});
+export const log4TSProvider = Log4TSProvider.createProvider(
+  'Log4ProviderOrchestrator',
+  {
+    level: LogLevel.Debug,
+    groups: [
+      {
+        expression: new RegExp('.+')
+      }
+    ]
+  }
+);
 
 // If .env wasn't provided then exit
 if (!process.env.PORT) {
@@ -54,5 +57,9 @@ export const {
   SENDGRID_API_KEY,
   IS_DEPENDENT_SERVICE,
   IDENTITY_MANAGER_BASE_URL,
-  DID_WEB_LAC
+  DID_WEB_LAC,
+  DID_WEB_LAC_CONTROLLER,
+  DID_WEB_LAC_DECODE_DID,
+  DID_WEB_LAC_ADD_RSA_JWK_ATTR,
+  DID_WEB_LAC_ADD_EC_JWK_ATTR
 } = process.env;

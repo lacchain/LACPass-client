@@ -19,7 +19,10 @@ export enum ErrorsMessages {
   INTERNAL_SERVER_ERROR = 'Internal Server Error',
   BAD_REQUEST_ERROR = 'Bad request error',
   USER_ALREADY_EXISTS = 'A user with this email is already registered',
-  CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did'
+  CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did',
+  GET_DID_CONTROLLER_ERROR = 'Error while trying to get did controller',
+  DECODE_DID_CONTROLLER_ERROR = 'Error while decoding did',
+  ADD_ATTRIBUTE_ERROR = 'Error while associating attribute to did'
 }
 
 export const Errors = {
