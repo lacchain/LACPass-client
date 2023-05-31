@@ -5217,10 +5217,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-identity@^0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.10.tgz#7a002b591eb9b73ef64ae7d8b98d5fbeed7bdd1c"
-  integrity sha512-zNKVG4dPTnNn+zxeSxhSdqxsBNoqbVs4obw3Nd/rDokdEZutcw5JhCmTi8jDZGt/XQDKCnkWuwKnA8fcah7tEQ==
+lacpass-identity@^0.0.18:
+  version "0.0.18"
+  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.18.tgz#b3d192f5dc8ed3f42073d2314bf80f3adf23d89d"
+  integrity sha512-G2EeJuTN6l6eOTV8CoQhix/gzP/1BE3xo1IUUB65JarUu7ud6WN4BgUdKEqScewAtc0aQeaUSaRle4T+nNeI5A==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"

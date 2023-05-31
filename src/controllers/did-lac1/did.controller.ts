@@ -7,15 +7,15 @@ import {
 } from 'routing-controllers';
 import { Service } from 'typedi';
 import { ErrorsMessages } from '@constants/errorMessages';
-import { DidServiceWL } from '@services/external/did-lac/did-service';
+import { DidServiceLac1 } from '@services/external/did-lac/did-service';
 
-@JsonController('/did-web-lac')
+@JsonController('/did/lac1')
 @Service()
-export class DidWebLacController {
-  constructor(private readonly didServiceWL: DidServiceWL) {}
+export class DidLac1Controller {
+  constructor(private readonly didServiceWL: DidServiceLac1) {}
 
   @Post()
-  async createDidWebLac(): Promise<any> {
+  async createDidLac1(): Promise<any> {
     try {
       return this.didServiceWL.createDid();
     } catch (error: any) {

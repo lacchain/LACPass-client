@@ -1,63 +1,66 @@
 import { Service } from 'typedi';
+import { DidLacService, DidType, didLacAttributes } from 'lacpass-identity';
 import {
-  DidLacService,
-  DidType,
-  IJwkRsaAttribute,
-  didWelLacAttributes,
-  IJwkEcAttribute
-} from 'lacpass-identity';
-import {
-  DID_WEB_LAC,
-  DID_WEB_LAC_CONTROLLER,
-  DID_WEB_LAC_DECODE_DID,
-  DID_WEB_LAC_ADD_RSA_JWK_ATTR,
-  DID_WEB_LAC_ADD_EC_JWK_ATTR,
+  DID_LAC1_CONTROLLER,
+  DID_LAC1_DECODE_DID,
   IDENTITY_MANAGER_BASE_URL,
-  IS_DEPENDENT_SERVICE,
-  log4TSProvider
-} from '@config';
+  IS_COT_DEPENDENT_SERVICE,
+  log4TSProvider,
+  DID_LAC1,
+  DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT
+} from '../../../config';
 import { InternalServerError } from 'routing-controllers';
-import { ErrorsMessages } from '@constants/errorMessages';
+import { ErrorsMessages } from '../../../constants/errorMessages';
 import fetch from 'node-fetch';
+import { IX509Attribute } from 'lacpass-identity';
+import FormData from 'form-data';
 
 @Service()
-export class DidServiceWL {
+export class DidServiceLac1 {
+  // did
   public createDid: () => Promise<DidType>;
-  public addRsaJwkAttribute: (
-    jwkRsaAttribute: IJwkRsaAttribute
-  ) => Promise<any>;
-  public addEcJwkAttribute: (ecJwkAttribute: IJwkEcAttribute) => Promise<any>;
   public getController: (did: string) => Promise<any>;
-  public decodeDid: (did: string) => Promise<didWelLacAttributes>;
+  public decodeDid: (did: string) => Promise<didLacAttributes>;
+
+  // attribute
+  public rawAddAttributeFromX509Certificate: (
+    formData: any,
+    x509Cert: Express.Multer.File
+  ) => Promise<IX509Attribute>;
+
+  // TODO: Chain of trust
 
   private didService: DidLacService | null;
   log = log4TSProvider.getLogger('IdentityManagerService');
   constructor() {
-    if (IS_DEPENDENT_SERVICE !== 'true') {
-      this.log.info('Configuring identity-manager library usage');
+    if (IS_COT_DEPENDENT_SERVICE !== 'true') {
+      this.log.info('Configuring library usage');
 
       this.createDid = this.createDidByLib;
       this.getController = this.getControllerByLib;
       this.decodeDid = this.decodeDidByLib;
-      this.addRsaJwkAttribute = this.addRsaJwkAttributeByLib;
-      this.addEcJwkAttribute = this.addEcJwkAttributeByLib;
-      const S = require('lacpass-identity').DidServiceWebLac;
+
+      this.rawAddAttributeFromX509Certificate =
+        this.rawAddAttributeFromX509CertificateByLib;
+
+      const S = require('lacpass-identity').DidLac1Service;
       this.didService = new S();
     } else {
-      this.log.info('Configuring identity-manager external service connection');
+      this.log.info('Configuring external service connection');
       this.didService = null;
       this.createDid = this.createDidByExternalService;
       this.getController = this.getControllerByExternalService;
       this.decodeDid = this.decodeDidByExternalService;
-      this.addRsaJwkAttribute = this.addRsaJwkAttributeByExternalService;
-      this.addEcJwkAttribute = this.addEcJwkAttributeByExternalService;
+
+      this.rawAddAttributeFromX509Certificate =
+        this.rawAddAttributeFromX509CertificateByExternalService;
     }
   }
   private async createDidByLib(): Promise<DidType> {
     return (await this.didService?.createDid()) as DidType;
   }
   private async createDidByExternalService(): Promise<DidType> {
-    const result = await fetch(`${IDENTITY_MANAGER_BASE_URL}${DID_WEB_LAC}`, {
+    const result = await fetch(`${IDENTITY_MANAGER_BASE_URL}${DID_LAC1}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -76,7 +79,7 @@ export class DidServiceWL {
   }
   private async getControllerByExternalService(did: string): Promise<any> {
     const result = await fetch(
-      `${IDENTITY_MANAGER_BASE_URL}${DID_WEB_LAC_CONTROLLER}/${did}`,
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_CONTROLLER}/${did}`,
       {
         method: 'GET',
         headers: {
@@ -92,14 +95,14 @@ export class DidServiceWL {
     return (await result.json()) as any;
   }
 
-  private async decodeDidByLib(did: string): Promise<didWelLacAttributes> {
+  private async decodeDidByLib(did: string): Promise<didLacAttributes> {
     return (await this.didService?.decodeDid(did)) as any;
   }
   private async decodeDidByExternalService(
     did: string
-  ): Promise<didWelLacAttributes> {
+  ): Promise<didLacAttributes> {
     const result = await fetch(
-      `${IDENTITY_MANAGER_BASE_URL}${DID_WEB_LAC_DECODE_DID}/${did}`,
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_DECODE_DID}/${did}`,
       {
         method: 'GET',
         headers: {
@@ -107,62 +110,43 @@ export class DidServiceWL {
         }
       }
     );
-    console.log('status', result.status);
     if (result.status !== 200) {
       console.log(await result.text());
       throw new InternalServerError(ErrorsMessages.DECODE_DID_CONTROLLER_ERROR);
     }
-    return (await result.json()) as didWelLacAttributes;
-  }
-  private async addRsaJwkAttributeByLib(
-    jwkRsaAttribute: IJwkRsaAttribute
-  ): Promise<any> {
-    return (await this.didService?.addRsaJwkAttribute(jwkRsaAttribute)) as any;
-  }
-  private async addRsaJwkAttributeByExternalService(
-    jwkRsaAttribute: IJwkRsaAttribute
-  ): Promise<didWelLacAttributes> {
-    const result = await fetch(
-      `${IDENTITY_MANAGER_BASE_URL}${DID_WEB_LAC_ADD_RSA_JWK_ATTR}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(jwkRsaAttribute)
-      }
-    );
-    console.log('status', result.status);
-    if (result.status !== 200) {
-      console.log(await result.text());
-      throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
-    }
-    return (await result.json()) as any;
+    return (await result.json()) as didLacAttributes;
   }
 
-  private async addEcJwkAttributeByLib(
-    ecJwkAttribute: IJwkEcAttribute
-  ): Promise<any> {
-    return (await this.didService?.addEcJwkAttribute(ecJwkAttribute)) as any;
+  private async rawAddAttributeFromX509CertificateByLib(
+    formData: any,
+    x509Cert: Express.Multer.File
+  ): Promise<IX509Attribute> {
+    return await this.didService?.rawAddAttributeFromX509Certificate(
+      formData,
+      x509Cert
+    );
   }
-  private async addEcJwkAttributeByExternalService(
-    ecJwkAttribute: IJwkEcAttribute
-  ): Promise<didWelLacAttributes> {
+
+  private async rawAddAttributeFromX509CertificateByExternalService(
+    formData: any,
+    x509Cert: Express.Multer.File
+  ): Promise<IX509Attribute> {
+    const payloadform = new FormData();
+    const fileName = x509Cert.originalname ? x509Cert.originalname : 'x509Cert';
+    payloadform.append('x509Cert', x509Cert.buffer, fileName);
+    payloadform.append('data', formData.data || '');
     const result = await fetch(
-      `${IDENTITY_MANAGER_BASE_URL}${DID_WEB_LAC_ADD_EC_JWK_ATTR}`,
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT}`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(ecJwkAttribute)
+        body: payloadform,
+        headers: payloadform.getHeaders()
       }
     );
-    console.log('status', result.status);
     if (result.status !== 200) {
       console.log(await result.text());
       throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
     }
-    return (await result.json()) as any;
+    return (await result.json()) as IX509Attribute;
   }
 }
