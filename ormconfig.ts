@@ -10,9 +10,12 @@ import {
   TYPEORM_MIGRATIONS_RUN,
   PRODUCTION_ENV,
   TYPEORM_TYPE,
-  IS_DEPENDENT_SERVICE,
+  IS_CLIENT_DEPENDENT_SERVICE,
   log4TSProvider
 } from '@config';
+
+import { Secp256k1Entity, DidEntity } from 'lacpass-identity';
+import { ManagerEntity } from 'lacpass-chain-of-trust';
 
 const log = log4TSProvider.getLogger('ormConfig');
 
@@ -42,8 +45,17 @@ const config: ConnectionOptions = {
   }
 };
 
-if (IS_DEPENDENT_SERVICE !== 'true') {
+if (IS_CLIENT_DEPENDENT_SERVICE !== 'true') {
   log.info('Importing entities from external components');
+  config.entities?.push(DidEntity);
+  // config.entities?.push(CoTDidEntity); // it refers to the same entity "Did"
+  // but coming from a different package
+  // As a rule, when two dependencies are using a same sub dependency,
+  // from which we need to import their entities, then that sub dependecy
+  // MUST have the same VERSION; this ensures that loaded entities don't differ.
+  // in both dependencies.
+  config.entities?.push(Secp256k1Entity);
+  config.entities?.push(ManagerEntity);
 } else {
   log.info('Initializing with local entities');
 }

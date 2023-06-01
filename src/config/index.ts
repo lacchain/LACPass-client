@@ -1,17 +1,21 @@
+import { randomUUID } from 'crypto';
 import { config } from 'dotenv';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
-export const log4TSProvider = Log4TSProvider.createProvider('Log4Provider', {
-  level: LogLevel.Debug,
-  groups: [
-    {
-      expression: new RegExp('.+')
-    }
-  ]
-});
+export const log4TSProvider = Log4TSProvider.createProvider(
+  'Log4ProviderClient' + randomUUID(),
+  {
+    level: LogLevel.Debug,
+    groups: [
+      {
+        expression: new RegExp('.+')
+      }
+    ]
+  }
+);
 
 // If .env wasn't provided then exit
 if (!process.env.PORT) {
@@ -52,5 +56,13 @@ export const {
   DOCS_ENABLED,
   SENDGRID_API_USER,
   SENDGRID_API_KEY,
-  IS_DEPENDENT_SERVICE
+  IS_CLIENT_DEPENDENT_SERVICE,
+  IDENTITY_MANAGER_BASE_URL,
+  DID_LAC1_CONTROLLER,
+  DID_LAC1_DECODE_DID,
+  DID_LAC1,
+  DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT,
+  CHAIN_OF_TRUST_BASE_URL,
+  COT_CREATE_MANAGER,
+  COT_GET_MANAGER
 } = process.env;

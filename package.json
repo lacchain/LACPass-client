@@ -1,7 +1,7 @@
 {
-  "name": "laccpass-orchestrator",
+  "name": "lacpass-client",
   "version": "0.0.1",
-  "description": "Rest api for laccpass Orchestrator",
+  "description": "Rest api for laccpass Client",
   "license": "MIT",
   "scripts": {
     "dev": "yarn && nodemon --watch 'src/**/*.ts' --exec 'ENV=dev ts-node -r tsconfig-paths/register' src/server.ts",
@@ -76,8 +76,11 @@
     "express": "^4.17.3",
     "express-formidable": "^1.2.0",
     "express-rate-limit": "^6.3.0",
+    "form-data": "^4.0.0",
     "helmet": "^5.0.2",
     "jsonwebtoken": "^9.0.0",
+    "lacpass-chain-of-trust": "^0.0.7",
+    "lacpass-identity": "^0.0.20",
     "morgan": "^1.10.0",
     "multer": "^1.4.4",
     "nodemailer": "^6.7.3",
