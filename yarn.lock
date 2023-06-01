@@ -5217,10 +5217,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-chain-of-trust@^0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.3.tgz#15e2bf65f6518478ba0f994495fa17056ffdff96"
-  integrity sha512-Vj30UtNCelV97wX7EMX4oa04C8HlUO9jVC6CaVnecSkW5AQqXrmfyXZgU/hKutMmKPyqeyPF0PO33cl0Gui3mQ==
+lacpass-chain-of-trust@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.7.tgz#ecd4d16d649b2b5d04e8dbbb2f23ca77cf3a8302"
+  integrity sha512-0aMHHXxNNuD6fihXG0zM5prmJUPf0AtYvQ5Uv8L8IVDx+qPehAdqVxAPEDazHA8v1OMYkO0xwD6jacAuVq8Iig==
   dependencies:
     aws-sdk "^2.1116.0"
     base-x "^4.0.0"
@@ -5237,7 +5237,7 @@ lacpass-chain-of-trust@^0.0.3:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacpass-identity "^0.0.16"
+    lacpass-identity "^0.0.20"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5257,10 +5257,10 @@ lacpass-chain-of-trust@^0.0.3:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-identity@^0.0.16:
-  version "0.0.16"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.16.tgz#87f3c67b5b707875aa5161c2cde994585298d090"
-  integrity sha512-l0b2rRksM0uWS4uei1fOmSQ+q3yhIr52NO3Sy1gQY2N5B5VFv1RT0agJLhggsVx1IMhBbx2K8GJm4/415tBbLw==
+lacpass-identity@^0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.20.tgz#b463f8cc11b9b285e3116ec4481b22933cc8c453"
+  integrity sha512-jsI2Yf2pxpQzZ4Tt519Si2gOhldAZUBgrvw0qgErBskDwEScctVblF6KCPbxS2SnvTcHfk+kW13GyeTwJZpyuw==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5279,7 +5279,7 @@ lacpass-identity@^0.0.16:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacpass-key-manager "^0.0.15"
+    lacpass-key-manager "^0.0.17"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5299,52 +5299,10 @@ lacpass-identity@^0.0.16:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-identity@^0.0.18:
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.18.tgz#b3d192f5dc8ed3f42073d2314bf80f3adf23d89d"
-  integrity sha512-G2EeJuTN6l6eOTV8CoQhix/gzP/1BE3xo1IUUB65JarUu7ud6WN4BgUdKEqScewAtc0aQeaUSaRle4T+nNeI5A==
-  dependencies:
-    "@lacchain/gas-model-provider" "^1.0.1"
-    aws-sdk "^2.1116.0"
-    base-x "^4.0.0"
-    bcrypt "^5.1.0"
-    body-parser "^1.20.0"
-    cbor "^8.1.0"
-    class-transformer "^0.5.1"
-    class-validator "^0.12.2"
-    class-validator-jsonschema "^2.2.0"
-    cors "^2.8.5"
-    dotenv "^16.0.3"
-    ethers "^5.6.5"
-    express "^4.17.3"
-    express-formidable "^1.2.0"
-    express-rate-limit "^6.3.0"
-    helmet "^5.0.2"
-    jsonwebtoken "^9.0.0"
-    lacpass-key-manager "^0.0.15"
-    morgan "^1.10.0"
-    multer "^1.4.4"
-    nodemailer "^6.7.3"
-    nodemailer-express-handlebars "^5.0.0"
-    nodemailer-sendgrid-transport "^0.2.0"
-    pg "^8.7.3"
-    redis "^3.1.2"
-    reflect-metadata "^0.1.13"
-    routing-controllers "^0.9.0"
-    routing-controllers-openapi "^3.1.0"
-    swagger-ui-express "^4.3.0"
-    ts-jest "^26.5.6"
-    tsconfig-paths "^3.14.1"
-    typedi "^0.10.0"
-    typeorm "^0.2.41"
-    typeorm-seeding "^1.6.1"
-    typescript-logging "^2.1.0"
-    typescript-logging-log4ts-style "^2.1.0"
-
-lacpass-key-manager@^0.0.15:
-  version "0.0.15"
-  resolved "https://registry.yarnpkg.com/lacpass-key-manager/-/lacpass-key-manager-0.0.15.tgz#f227f6dc564716c7aede62043d7ea41e83300e00"
-  integrity sha512-f3FbSbHZEKaw/TSVWYhROCe1thEttljgUqLLOxIMddq/useJQV/UO9P8mjfta0+ALpVHHWJAwnC6IJ8yO7KaLg==
+lacpass-key-manager@^0.0.17:
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/lacpass-key-manager/-/lacpass-key-manager-0.0.17.tgz#3e8ddc87e4a2766467c53f6f22d06975c1723030"
+  integrity sha512-D36Lau2UKK0LwDQSrE6xQM4JMiI5/tS+Z6fmFBFUiYg4/hrtPWL6ii50S6IM/lVcm5UcEhwzMxwoI/QHHUs2Pw==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"

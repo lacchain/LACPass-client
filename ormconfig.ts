@@ -14,7 +14,8 @@ import {
   log4TSProvider
 } from '@config';
 
-import { DidEntity, Secp256k1Entity } from 'lacpass-identity';
+import { Secp256k1Entity, DidEntity } from 'lacpass-identity';
+import { ManagerEntity } from 'lacpass-chain-of-trust';
 
 const log = log4TSProvider.getLogger('ormConfig');
 
@@ -47,7 +48,14 @@ const config: ConnectionOptions = {
 if (IS_ORCHESTRATOR_DEPENDENT_SERVICE !== 'true') {
   log.info('Importing entities from external components');
   config.entities?.push(DidEntity);
+  // config.entities?.push(CoTDidEntity); // it refers to the same entity "Did"
+  // but coming from a different package
+  // As a rule, when two dependencies are using a same sub dependency,
+  // from which we need to import their entities, then that sub dependecy
+  // MUST have the same VERSION; this ensures that loaded entities don't differ.
+  // in both dependencies.
   config.entities?.push(Secp256k1Entity);
+  config.entities?.push(ManagerEntity);
 } else {
   log.info('Initializing with local entities');
 }
