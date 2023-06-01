@@ -22,7 +22,9 @@ export enum ErrorsMessages {
   CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did',
   GET_DID_CONTROLLER_ERROR = 'Error while trying to get did controller',
   DECODE_DID_CONTROLLER_ERROR = 'Error while decoding did',
-  ADD_ATTRIBUTE_ERROR = 'Error while associating attribute to did'
+  ADD_ATTRIBUTE_ERROR = 'Error while associating attribute to did',
+  MANAGER_CREATION_ERROR = 'Error while creating manager',
+  MANAGER_GET_ERROR = 'Error while requesting manager details'
 }
 
 export const Errors = {
