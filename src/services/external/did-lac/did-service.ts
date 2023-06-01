@@ -4,7 +4,7 @@ import {
   DID_LAC1_CONTROLLER,
   DID_LAC1_DECODE_DID,
   IDENTITY_MANAGER_BASE_URL,
-  IS_ORCHESTRATOR_DEPENDENT_SERVICE,
+  IS_CLIENT_DEPENDENT_SERVICE,
   log4TSProvider,
   DID_LAC1,
   DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT
@@ -33,7 +33,7 @@ export class DidServiceLac1 {
   private didService: DidLacService | null;
   log = log4TSProvider.getLogger('IdentityManagerService');
   constructor() {
-    if (IS_ORCHESTRATOR_DEPENDENT_SERVICE !== 'true') {
+    if (IS_CLIENT_DEPENDENT_SERVICE !== 'true') {
       this.log.info('Configuring library usage');
 
       this.createDid = this.createDidByLib;

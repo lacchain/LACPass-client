@@ -1,4 +1,4 @@
-# LACPass Orchestrator
+# LACPass Client
 
 This project includes the boilerplate for a basic rest-api made in Node.JS with Express + Typescript.
 

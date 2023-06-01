@@ -1,4 +1,4 @@
-# LACPass Orchestrator
+# LACPass Client
 
 ## Getting Started
 

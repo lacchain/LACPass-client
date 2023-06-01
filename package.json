@@ -1,7 +1,7 @@
 {
-  "name": "lacpass-orchestrator",
+  "name": "lacpass-client",
   "version": "0.0.1",
-  "description": "Rest api for laccpass Orchestrator",
+  "description": "Rest api for laccpass Client",
   "license": "MIT",
   "scripts": {
     "dev": "yarn && nodemon --watch 'src/**/*.ts' --exec 'ENV=dev ts-node -r tsconfig-paths/register' src/server.ts",

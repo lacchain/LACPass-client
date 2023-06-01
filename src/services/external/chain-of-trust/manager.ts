@@ -3,7 +3,7 @@ import {
   CHAIN_OF_TRUST_BASE_URL,
   COT_CREATE_MANAGER,
   COT_GET_MANAGER,
-  IS_ORCHESTRATOR_DEPENDENT_SERVICE,
+  IS_CLIENT_DEPENDENT_SERVICE,
   log4TSProvider
 } from '../../../config';
 import { Service } from 'typedi';
@@ -20,7 +20,7 @@ export class Manager {
 
   private manager: IManagerService | null;
   constructor() {
-    if (IS_ORCHESTRATOR_DEPENDENT_SERVICE !== 'true') {
+    if (IS_CLIENT_DEPENDENT_SERVICE !== 'true') {
       this.log.info('Configuring library usage');
       this.createManager = this.createManagerByLib;
       this.getManager = this.getManagerByLib;

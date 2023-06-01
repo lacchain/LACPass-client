@@ -6,7 +6,7 @@ import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
 export const log4TSProvider = Log4TSProvider.createProvider(
-  'Log4ProviderOrchestrator' + randomUUID(),
+  'Log4ProviderClient' + randomUUID(),
   {
     level: LogLevel.Debug,
     groups: [
@@ -56,7 +56,7 @@ export const {
   DOCS_ENABLED,
   SENDGRID_API_USER,
   SENDGRID_API_KEY,
-  IS_ORCHESTRATOR_DEPENDENT_SERVICE,
+  IS_CLIENT_DEPENDENT_SERVICE,
   IDENTITY_MANAGER_BASE_URL,
   DID_LAC1_CONTROLLER,
   DID_LAC1_DECODE_DID,
