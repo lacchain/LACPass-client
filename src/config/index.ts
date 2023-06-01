@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { config } from 'dotenv';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
@@ -5,7 +6,7 @@ import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
 export const log4TSProvider = Log4TSProvider.createProvider(
-  'Log4ProviderOrchestrator',
+  'Log4ProviderOrchestrator' + randomUUID(),
   {
     level: LogLevel.Debug,
     groups: [
