@@ -3,7 +3,8 @@ import {
   Post,
   BadRequestError,
   Body,
-  UploadedFile
+  UploadedFile,
+  Delete
 } from 'routing-controllers';
 import { Service } from 'typedi';
 import { ErrorsMessages } from '../../constants/errorMessages';
@@ -21,6 +22,23 @@ export class DidLac1AttributeController {
   ) {
     try {
       return this.didService.rawAddAttributeFromX509Certificate(
+        formData,
+        x509Cert
+      );
+    } catch (error: any) {
+      throw new BadRequestError(
+        error.detail ?? error.message ?? ErrorsMessages.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Delete('/revoke/jwk-from-x509certificate')
+  async revokeAttributeFromX509Certificate(
+    @Body({ validate: true }) formData: any,
+    @UploadedFile('x509Cert') x509Cert: Express.Multer.File
+  ) {
+    try {
+      return this.didService.rawRevokeAttributeFromX509Certificate(
         formData,
         x509Cert
       );

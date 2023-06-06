@@ -5600,10 +5600,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-chain-of-trust@^0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.8.tgz#dc9c5f5cb2af203ce896f24ed1d5503ba73d1ac9"
-  integrity sha512-53k3P01XFKvfM8b46PX+MI2aDXgf0FodE4BUJOGg3EsN8he8RKehtfMdyXaGlwfrviTGNFvXvPXLY/sADKtqFg==
+lacpass-chain-of-trust@^0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.9.tgz#96e3d879a957011fde6bbb0eebf944a63675c4ac"
+  integrity sha512-XOveT5X8iblapeKHSL31lK5ZEOZolAzi8nEb3kCaA9sFCijNJM9waK9yMaYB0rALcPIwB3nTOokfYS7lMJwJ+Q==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5622,7 +5622,7 @@ lacpass-chain-of-trust@^0.0.8:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacpass-identity "^0.0.23"
+    lacpass-identity "^0.0.25"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5642,10 +5642,10 @@ lacpass-chain-of-trust@^0.0.8:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-identity@^0.0.23:
-  version "0.0.23"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.23.tgz#ad4a42f075538fe942c68b98c0fbca6b6b2018da"
-  integrity sha512-oXvqbYbLqJKoK+3Dx6TkksJZkAuWQ28Q1ujw0beXz69eJyE49Go09dMK5PJJCDNHmKCHh/jMIJ/nTjSV7kaJwQ==
+lacpass-identity@^0.0.25:
+  version "0.0.25"
+  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.25.tgz#b7f2097ea89384745375d890b364e68019201697"
+  integrity sha512-SoMJbErLpbAt6eWMa2OD+nrPz29UaW5OXyposJgb04slg+m5UArk21EXqZ+AcRUEuf1nx+PhRSQPYOYFFEenPg==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
