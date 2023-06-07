@@ -39,7 +39,7 @@ services:
     ports:
       - '${EXPOSED_CONTAINER_SERVER_PORT}:${PORT}'
     restart: on-failure
-    container_name: laccpass-client
+    container_name: lacpass-client
     depends_on:
       - postgres
       - redis

@@ -1,6 +1,6 @@
 # LACPass Client
 
-This project includes the boilerplate for a basic rest-api made in Node.JS with Express + Typescript.
+LacPass Client is the API that allows users to manage their signing certificates as well as other entities which has been endorsed trust. 
 
 ## Basic Requirements
 
@@ -104,13 +104,13 @@ The following commands will `build and run` a Docker image ready for production 
 #### Build Docker image
 
 ```
-docker build -f Dockerfile.prod -t laccpass-key-manager .
+docker build -f Dockerfile.prod -t lacpass-client .
 ```
 
 #### Run docker image (you need to add .env file as param)
 
 ```
-docker run --rm --env-file=.env.prod -p 3000:3000 --name node-api laccpass-key-manager
+docker run --rm --env-file=.env.prod -p 3000:3000 --name node-api lacpass-client
 ```
 
 ### Fix issue at build docker image (dependencies to install bcrypt are not providede in alpine version of node)
