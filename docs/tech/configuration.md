@@ -7,11 +7,12 @@ LacPass Client is the API that allows users to manage their signing certificates
 1. Install Node.js (lts-version v16.20.0)
 2. Install `yarn` if not present `curl -o- -L https://yarnpkg.com/install.sh | bash` (macOS and generic Unix environments)
 3. Install required dependencies by `yarn`
-4. `cp .example.env .env.dev`
-5. `cp .example.env.test .env.test`
-6. Create your DB (i.e. psql for Postgres: `psql -U <user> -h <host> -c "create database <db name>;"`) with same name as your .env file.
-7. Run `ENV=[dev, test, prod] yarn db:setup`.
-8. Start your server with `ENV=[dev, prod] yarn dev`.
+4. `cp .example.env.dev .env.dev`
+5. `cp .example.env .env.prod`
+6. `cp .example.env.test .env.test`
+7. Create your DB (i.e. psql for Postgres: `psql -U <user> -h <host> -c "create database <db name>;"`) with same name as your .env file.
+8. Run `ENV=[dev, test, prod] yarn db:setup`.
+9. Start your server with `ENV=[dev, prod] yarn dev`.
 
 ## Some scripts
 
@@ -64,6 +65,8 @@ In order to run the app with Docker, you should install or update to the latest 
 
 The following commands will build and run all you need to start working on the base, without any other installation requirements. Important: if you already have postgres running locally, you'll need to kill the service before run `docker-compose up`.
 
+Note: Don't forget to create a copy of the env file as mentioned in the **basic requirements** section.
+
 ```
 docker network create backend
 ```
@@ -78,6 +81,8 @@ docker-compose -f docker-compose-dev.yml --env-file .env.dev up
 
 
 ### Testing Docker production images with docker-compose
+
+Note: Don't forget to create a copy of the env file as mentioned in the **basic requirements** section.
 
 The following commands will build and run all you need to start working on the base, without any other installation requirements. Important: if you already have postgres running locally, you'll need to kill the service before run `docker-compose up`.
 
