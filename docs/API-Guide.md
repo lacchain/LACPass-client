@@ -21,3 +21,8 @@ Before interacting with this API, please make sure that:
 
 * Please follow the instructions detailed [here](https://github.com/lacchain/LACPass-chain-of-trust/blob/master/docs/api/Manager-Guide.md)
 
+## Interacting via CLI
+
+Please find [here](./client-helper.sh) a client-helper tool which wraps all the functionalities mentioned above via CLI.
+**Note** make sure to add execution permissions before executing the client-helper.sh script.
+
