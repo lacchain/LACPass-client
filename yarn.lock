@@ -2477,13 +2477,6 @@ caseless@~0.12.0:
   resolved "https://registry.yarnpkg.com/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"
   integrity sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw=
 
-cbor@^8.1.0:
-  version "8.1.0"
-  resolved "https://registry.yarnpkg.com/cbor/-/cbor-8.1.0.tgz#cfc56437e770b73417a2ecbfc9caf6b771af60d5"
-  integrity sha512-DwGjNW9omn6EwP70aXsn7FQJx5kO12tX0bZkaTjzdVFM6/7nhA4t0EENocKGx6D2Bch9PE2KzCUf5SceBdeijg==
-  dependencies:
-    nofilter "^3.1.0"
-
 cbor@^9.0.0:
   version "9.0.0"
   resolved "https://registry.yarnpkg.com/cbor/-/cbor-9.0.0.tgz#0e0eb623f076d41fafc6a7360b664153e2f1473c"
@@ -5393,6 +5386,11 @@ json-buffer@3.0.0:
   resolved "https://registry.yarnpkg.com/json-buffer/-/json-buffer-3.0.0.tgz#5b1f397afc75d677bde8bcfc0e47e1f9a3d9a898"
   integrity sha1-Wx85evx11ne96Lz8Dkfh+aPZqJg=
 
+json-canonicalize@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/json-canonicalize/-/json-canonicalize-1.0.6.tgz#c63dc9b909db322fec058320a0f81aef6569b257"
+  integrity sha512-kP2iYpOS5SZHYhIaR1t9oG80d4uTY3jPoaBj+nimy3njtJk8+sRsVatN8pyJRDRtk9Su3+6XqA2U8k0dByJBUQ==
+
 json-parse-even-better-errors@^2.3.0:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz#7c47805a94319928e05777405dc12e1f7a4ee02d"
@@ -5600,10 +5598,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-chain-of-trust@^0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.9.tgz#96e3d879a957011fde6bbb0eebf944a63675c4ac"
-  integrity sha512-XOveT5X8iblapeKHSL31lK5ZEOZolAzi8nEb3kCaA9sFCijNJM9waK9yMaYB0rALcPIwB3nTOokfYS7lMJwJ+Q==
+lacpass-chain-of-trust@^0.0.11:
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.11.tgz#2195152bbc24986f7c1620f4944862def6f0009f"
+  integrity sha512-eiRUB7neFth/9Fk4x9RoxYlVSBvYIdsNn60zk2V1r92tsg188FimPIPI7x9Ymu9Ne/EQ4laT08jh0OrcRxhm1Q==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5622,7 +5620,7 @@ lacpass-chain-of-trust@^0.0.9:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacpass-identity "^0.0.25"
+    lacpass-identity "^0.0.26"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5642,17 +5640,16 @@ lacpass-chain-of-trust@^0.0.9:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-identity@^0.0.25:
-  version "0.0.25"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.25.tgz#b7f2097ea89384745375d890b364e68019201697"
-  integrity sha512-SoMJbErLpbAt6eWMa2OD+nrPz29UaW5OXyposJgb04slg+m5UArk21EXqZ+AcRUEuf1nx+PhRSQPYOYFFEenPg==
+lacpass-identity@^0.0.26:
+  version "0.0.26"
+  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.26.tgz#2e068482a85d93c4480aca6e3e414cdf0a38a2c1"
+  integrity sha512-Bj4zL/+DTf9YQzmZpRJb3d49dfjmGwq/ob7dYZyNC0R+GoudxoTO95eCZ6OMRXoZqJ97VuadLMaZ+wOZDrjOog==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
     base-x "^4.0.0"
     bcrypt "^5.1.0"
     body-parser "^1.20.0"
-    cbor "^8.1.0"
     class-transformer "^0.5.1"
     class-validator "^0.12.2"
     class-validator-jsonschema "^2.2.0"
@@ -5663,6 +5660,7 @@ lacpass-identity@^0.0.25:
     express-formidable "^1.2.0"
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
+    json-canonicalize "^1.0.6"
     jsonwebtoken "^9.0.0"
     lacpass-key-manager "^0.0.17"
     morgan "^1.10.0"
