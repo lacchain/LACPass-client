@@ -72,7 +72,7 @@
     "class-validator-jsonschema": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "ethers": "^6.3.0",
+    "ethers": "^6.6.7",
     "express": "^4.17.3",
     "express-formidable": "^1.2.0",
     "express-rate-limit": "^6.3.0",
