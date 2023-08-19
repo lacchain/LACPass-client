@@ -24,7 +24,15 @@ export enum ErrorsMessages {
   DECODE_DID_CONTROLLER_ERROR = 'Error while decoding did',
   ADD_ATTRIBUTE_ERROR = 'Error while associating attribute to did',
   MANAGER_CREATION_ERROR = 'Error while creating manager',
-  MANAGER_GET_ERROR = 'Error while requesting manager details'
+  MANAGER_GET_ERROR = 'Error while requesting manager details',
+  RESOLVE_DID_ERROR = 'Unable to resolve did',
+  // eslint-disable-next-line max-len
+  CREATE_DID_JWT_ERROR = 'An internal server error occurred while trying to create a new did-jwt',
+  INVALID_DID = 'Invalid did params',
+  DIDCOMM_ENCRYPT = 'An error occurred while trying to encrypt with didcomm protocol',
+  KEY_AGREEMENT_NOT_FOUND = 'Key agreement was not found',
+  // eslint-disable-next-line max-len
+  SECURE_RELAY_MESSAGE_DELIVERY_ERROR = 'An internal server error occurred while trying to send message through secure relay message deliverer'
 }
 
 export const Errors = {

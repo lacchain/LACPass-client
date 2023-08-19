@@ -14,7 +14,7 @@ import {
   log4TSProvider
 } from '@config';
 
-import { Secp256k1Entity, DidEntity } from 'lacpass-identity';
+import { ECEntity, DidEntity } from 'lacpass-identity';
 import { ManagerEntity } from 'lacpass-chain-of-trust';
 
 const log = log4TSProvider.getLogger('ormConfig');
@@ -54,7 +54,7 @@ if (IS_CLIENT_DEPENDENT_SERVICE !== 'true') {
   // from which we need to import their entities, then that sub dependecy
   // MUST have the same VERSION; this ensures that loaded entities don't differ.
   // in both dependencies.
-  config.entities?.push(Secp256k1Entity);
+  config.entities?.push(ECEntity);
   config.entities?.push(ManagerEntity);
 } else {
   log.info('Initializing with local entities');

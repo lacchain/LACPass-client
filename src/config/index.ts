@@ -17,11 +17,30 @@ export const log4TSProvider = Log4TSProvider.createProvider(
   }
 );
 
+export const getDidResolverUrl = (): string => {
+  if (!process.env.DID_RESOLVER_URL) {
+    console.error('==> Please set DID_RESOLVER_URL in your .env');
+    process.exit(1);
+  }
+  return process.env.DID_RESOLVER_URL;
+};
+
+export const getSecureRelayServiceDid = (): string => {
+  if (!process.env.SECURE_RELAY_SERVICE_DID) {
+    console.error('==> Please set SECURE_RELAY_SERVICE_DID in your .env');
+    process.exit(1);
+  }
+  return process.env.SECURE_RELAY_SERVICE_DID;
+};
+
 // If .env wasn't provided then exit
 if (!process.env.PORT) {
   console.error('==> Please check your .env');
   process.exit(1);
 }
+
+export const DID_RESOLVER_URL = getDidResolverUrl();
+export const SECURE_RELAY_SERVICE_DID = getSecureRelayServiceDid();
 
 export const PRODUCTION_ENV = process.env.ENV === 'prod';
 export const DEV_ENV = process.env.ENV === 'dev';
@@ -63,7 +82,14 @@ export const {
   DID_LAC1,
   DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT,
   DID_LAC1_REVOKE_JWK_ATTR_FROM_X509_CERT,
+  DID_LAC1_ADD_NEW_SECP256K1_ATTRIBUTE,
+  DID_LAC1_ADD_NEW_ED25519_ATTRIBUTE,
   CHAIN_OF_TRUST_BASE_URL,
   COT_CREATE_MANAGER,
-  COT_GET_MANAGER
+  COT_GET_MANAGER,
+  KEY_MANAGER_BASE_URL,
+  KEY_MANAGER_DID_JWT,
+  KEY_MANAGER_DID_COMM_ENCRYPT,
+  SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL,
+  SECURE_RELAY_MESSAGE_DELIVERER_SEND
 } = process.env;
