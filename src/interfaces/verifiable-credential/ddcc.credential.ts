@@ -7,28 +7,29 @@ export interface ICredential {
   expirationDate: string;
 }
 export interface IDDCCCredential extends ICredential {
-  credentialSubject: {
-    id: string;
-    name: string;
-    birthDate: string;
-    sex: string;
-    identifier: string;
-    vaccine: {
-      vaccine: string;
-      brand: string;
-      manufacturer: string;
-      authorization: string;
-      batch: string;
-      dose: number;
-      vaccinationDate: string;
-      country: string;
-      administeringCentre: string;
-      worker: string;
-      disease: string;
-      birthDate: string;
-    };
-  };
+  credentialSubject: IDDCCCredentialSubject;
   evidence: any[];
+}
+
+export interface IDDCCCredentialSubject {
+  id: string;
+  name: string;
+  birthDate: string;
+  sex: string;
+  identifier: string;
+  vaccine: {
+    vaccineCode: string;
+    date: string;
+    dose: number;
+    country: string;
+    centre: string;
+    brand: string;
+    lot: string;
+  };
+}
+export interface DDCCQrEvidence {
+  qrb64: string;
+  verificationUrlReference?: string;
 }
 
 export interface QRDDCC {

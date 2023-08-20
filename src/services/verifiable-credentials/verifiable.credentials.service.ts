@@ -3,18 +3,28 @@ import { SecureRelayService } from '@services/secure-relay-service/secure.relay.
 import { randomUUID } from 'crypto';
 import { INewAttribute } from 'lacpass-chain-of-trust';
 import {
+  DDCCQrEvidence,
   ICredential,
   IDDCCCredential,
   IDDCCVerifiableCredential,
   IType1Proof,
   IVerifiableCredential
 } from 'src/interfaces/verifiable-credential/ddcc.credential';
+import crypto from 'crypto';
 import { Service } from 'typedi';
 import { ethers } from 'ethers';
 import { log4TSProvider } from '../../config';
 import { DidDocumentService } from '@services/did/did.document.service';
 import { BadRequestError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
+import {
+  Country,
+  DDCCFormatValidator,
+  DDCCVerifiableCredentialData,
+  Vaccine
+} from './ddcc.format';
+import { validateOrReject } from 'class-validator';
+import { canonicalize } from 'json-canonicalize';
 
 @Service()
 export class VerifiableCredentialService {
@@ -34,17 +44,21 @@ export class VerifiableCredentialService {
     this.didServiceLac1 = new DidServiceLac1();
   }
   async send(formData: any, _evidence: Express.Multer.File): Promise<any> {
-    const { issuerDid, receiverDid } = await this._validateAndExtractData(
+    const ddccVerifiableCredentialData = await this._validateAndExtractData(
       formData
     );
-    // console.log('qr code: ', evidence.buffer.toString('base64'));
+    const base64QrCode = _evidence.buffer.toString('base64');
     // TODO: send credentials
-    const ddccCredential = await this.assembleDDCCCredential();
+    const ddccCredential = await this.assembleDDCCCredential(
+      ddccVerifiableCredentialData,
+      base64QrCode
+    );
     const ddccVerifiableCredential = (await this.addProof(
       ddccCredential
     )) as IDDCCVerifiableCredential;
     // TODO: send ddcc credential through secure relay server
     const message = JSON.stringify(ddccVerifiableCredential); // TODO: stringify VC
+    const { issuerDid, receiverDid } = ddccVerifiableCredentialData;
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
@@ -141,22 +155,74 @@ export class VerifiableCredentialService {
     return buffPubKey;
   }
 
-  async _validateAndExtractData(formData: any): Promise<{
-    issuerDid: string;
-    receiverDid: string;
-  }> {
-    // TODO: validate form data to contain: "issuer did", "expirationDate", "data to show"
-    const d = JSON.parse(formData.data) as {
-      issuerDid: string;
-      receiverDid: string;
-    };
+  async _validateDDCCCoreRequiredData(ddccData: DDCCFormatValidator) {
+    const vaccinationData = ddccData.vaccination;
+    if (!vaccinationData) {
+      throw new BadRequestError(ErrorsMessages.VACCINATION_MISSING_ATTRIBUTE);
+    }
+
+    const country = vaccinationData.country;
+    if (!country) {
+      throw new BadRequestError(ErrorsMessages.COUNTRY_MISSING_ATTRIBUTE);
+    }
+    await this._validateDDCCCoreRequiredDataCountry(country);
+    const vaccine = vaccinationData.vaccine;
+    if (!vaccine) {
+      throw new BadRequestError(ErrorsMessages.VACCINE_MISSING_ATTRIBUTE);
+    }
+    await this._validateDDCCCoreRequiredDataVaccine(vaccine);
+    const ddcc = new DDCCFormatValidator();
+    ddcc.birthDate = ddccData.birthDate;
+    ddcc.identifier = ddccData.identifier;
+    ddcc.name = ddccData.name;
+    ddcc.sex = ddccData.sex;
+    ddcc.vaccination = ddccData.vaccination;
     try {
-      await this.didServiceLac1.decodeDid(d.issuerDid);
-      await this.didServiceLac1.decodeDid(d.receiverDid);
+      await validateOrReject(ddcc);
+    } catch (err: any) {
+      throw new BadRequestError(err);
+    }
+  }
+
+  async _validateDDCCCoreRequiredDataCountry(country: Country) {
+    const c = new Country();
+    c.code = country.code;
+    try {
+      await validateOrReject(c);
+    } catch (err: any) {
+      throw new BadRequestError(err);
+    }
+  }
+
+  async _validateDDCCCoreRequiredDataVaccine(vaccine: Vaccine) {
+    const v = new Vaccine();
+    v.code = vaccine.code;
+    try {
+      await validateOrReject(v);
+    } catch (err: any) {
+      throw new BadRequestError(err);
+    }
+  }
+
+  async _validateAndExtractData(
+    formData: any
+  ): Promise<DDCCVerifiableCredentialData> {
+    const ddccInputData = JSON.parse(
+      formData.data
+    ) as DDCCVerifiableCredentialData;
+    // validate dids
+    try {
+      await this.didServiceLac1.decodeDid(ddccInputData.issuerDid);
+      await this.didServiceLac1.decodeDid(ddccInputData.receiverDid);
     } catch (e) {
       throw new BadRequestError(ErrorsMessages.INVALID_DID);
     }
-    return d;
+    // validate ddcc incoming data
+    if (!ddccInputData.ddccData) {
+      throw new BadRequestError(ErrorsMessages.DDCC_DATA_ERROR);
+    }
+    await this._validateDDCCCoreRequiredData(ddccInputData.ddccData);
+    return ddccInputData;
   }
   async new(): Promise<IDDCCCredential> {
     return {
@@ -178,18 +244,13 @@ export class VerifiableCredentialService {
         sex: '',
         identifier: '',
         vaccine: {
-          vaccine: '',
+          vaccineCode: '',
           brand: '',
-          manufacturer: '',
-          authorization: '',
-          batch: '',
           dose: 0,
-          vaccinationDate: '',
           country: '',
-          administeringCentre: '',
-          worker: '',
-          disease: '',
-          birthDate: ''
+          date: '',
+          centre: '',
+          lot: ''
         }
       },
       evidence: []
@@ -197,12 +258,40 @@ export class VerifiableCredentialService {
   }
 
   /**
-   *
-   * Returns Credential without proof of validity
-   * TODO: add params to create Credential
+   * @description - Assemble a Verifiable Credential starting from data
+   comming from DDCCCoreData
+   * @param {DDCCVerifiableCredentialData} data - data
+   * @param {string} qrEvidence - qr health data in base64 format
+   * @return {IDDCCCredential}
    */
-  async assembleDDCCCredential(): Promise<IDDCCCredential> {
+  async assembleDDCCCredential(
+    data: DDCCVerifiableCredentialData,
+    qrEvidence: string
+  ): Promise<IDDCCCredential> {
     const ddccCredential = await this.new();
+    ddccCredential.id = randomUUID();
+    const ddccData = data.ddccData;
+    const vaccination = data.ddccData.vaccination;
+    ddccCredential.issuer = data.issuerDid;
+    ddccCredential.credentialSubject = {
+      id: data.receiverDid,
+      name: ddccData.name,
+      birthDate: ddccData.birthDate,
+      identifier: ddccData.identifier,
+      sex: ddccData.sex,
+      vaccine: {
+        vaccineCode: vaccination.vaccine.code,
+        date: vaccination.date,
+        dose: vaccination.dose,
+        country: vaccination.country.code,
+        centre: vaccination.centre,
+        lot: vaccination.lot,
+        brand: vaccination.brand.code
+      }
+    };
+    ddccCredential.evidence.push({
+      qrb64: qrEvidence
+    } as DDCCQrEvidence);
     return ddccCredential;
   }
 
@@ -212,12 +301,20 @@ export class VerifiableCredentialService {
    * @return {Promise<IDDCCVerifiableCredential>} A DDCC Verifiable credential
    */
   async addProof(credential: ICredential): Promise<IVerifiableCredential> {
-    const proof = await this.getIType1ProofAssertionMethodTemplate();
+    const proof = await this.getIType1ProofAssertionMethodTemplate(credential);
     // TODO: add custom fields to proof
     return { ...credential, proof };
   }
 
-  async getIType1ProofAssertionMethodTemplate(): Promise<IType1Proof> {
+  async getIType1ProofAssertionMethodTemplate(
+    credentialSubject: ICredential
+  ): Promise<IType1Proof> {
+    const credentialSubjectString = canonicalize(credentialSubject);
+    const credentialHash = crypto
+      .createHash('sha256')
+      .update(credentialSubjectString)
+      .digest('hex');
+    console.log('credential hash', credentialHash);
     const type1Proof: IType1Proof = {
       id: '',
       type: '',

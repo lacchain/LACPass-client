@@ -3,7 +3,8 @@ import {
   Post,
   BadRequestError,
   Body,
-  UploadedFile
+  UploadedFile,
+  InternalServerError
 } from 'routing-controllers';
 import { Service } from 'typedi';
 import { ErrorsMessages } from '../../constants/errorMessages';
@@ -26,9 +27,13 @@ export class VerifiableCredentialsController {
     @UploadedFile('qrCode') evidence: Express.Multer.File
   ) {
     try {
-      return this.verifiableCredential.send(formData, evidence);
+      const res = await this.verifiableCredential.send(formData, evidence);
+      return res;
     } catch (error: any) {
-      throw new BadRequestError(
+      if (error.detail ?? error.message) {
+        throw new BadRequestError(error.detail ?? error.message);
+      }
+      throw new InternalServerError(
         error.detail ?? error.message ?? ErrorsMessages.INTERNAL_SERVER_ERROR
       );
     }

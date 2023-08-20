@@ -98,6 +98,7 @@
     "typeorm-seeding": "^1.6.1",
     "typescript-logging": "^2.1.0",
     "typescript-logging-log4ts-style": "^2.1.0",
-    "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git"
+    "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git",
+    "json-canonicalize": "^1.0.6"
   }
 }

@@ -32,7 +32,11 @@ export enum ErrorsMessages {
   DIDCOMM_ENCRYPT = 'An error occurred while trying to encrypt with didcomm protocol',
   KEY_AGREEMENT_NOT_FOUND = 'Key agreement was not found',
   // eslint-disable-next-line max-len
-  SECURE_RELAY_MESSAGE_DELIVERY_ERROR = 'An internal server error occurred while trying to send message through secure relay message deliverer'
+  SECURE_RELAY_MESSAGE_DELIVERY_ERROR = 'An internal server error occurred while trying to send message through secure relay message deliverer',
+  DDCC_DATA_ERROR = 'No ddcc data was found in the incoming request',
+  VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
+  COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
+  VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found'
 }
 
 export const Errors = {
