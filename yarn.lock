@@ -5785,10 +5785,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-chain-of-trust@0.0.16:
-  version "0.0.16"
-  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.16.tgz#9f28b03461aa2d16f1958f04f56f87ed30e057ab"
-  integrity sha512-oAl8Er/f95SZzjOY3kBDI5mTjdUAFD9dAsH6KVuLRXma6MNyIPqc1TiQeKH6OcgFqi5JkRZ3qR4UB8WYsHY5Hw==
+lacpass-chain-of-trust@^0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.20.tgz#1a0822e7426d5bd1606059b65c70c5701a6504b5"
+  integrity sha512-xevJKTazJR+yKIdq3vhF2Jddf+gxdvV+3pFHRE9AwpbOC41gTsv0zqQqvY48rfCOY9RHUyCUacRrtl1mYR0TRA==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5807,7 +5807,7 @@ lacpass-chain-of-trust@0.0.16:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacpass-identity "^0.0.30"
+    lacpass-identity "^0.0.34"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5827,10 +5827,10 @@ lacpass-chain-of-trust@0.0.16:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-identity@^0.0.30:
-  version "0.0.30"
-  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.30.tgz#22795f84551153ed1411ca3c9f1813c546cca6ad"
-  integrity sha512-SDLuTgsZFYxY+c28g62+/0VmHsBROGZn+O9p12+rTy0iO8LqgIzthPpqGkvdIbf0uilPCMLLt6y/9P4STQ3rCQ==
+lacpass-identity@^0.0.34:
+  version "0.0.34"
+  resolved "https://registry.yarnpkg.com/lacpass-identity/-/lacpass-identity-0.0.34.tgz#f8cdda547af02f99088585d51f5f0bc4ebd9b8f3"
+  integrity sha512-Nbs+EcRbowThdkHurxf7eKj6cQR+RF88bmvD8aDdp2/6QAFk8Ua9l7nGvV9IkS4tZi8WaNVoT2FnpUeEj5fzHg==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5849,7 +5849,7 @@ lacpass-identity@^0.0.30:
     helmet "^5.0.2"
     json-canonicalize "^1.0.6"
     jsonwebtoken "^9.0.0"
-    lacpass-key-manager "^0.0.20"
+    lacpass-key-manager "^0.0.21"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5869,10 +5869,10 @@ lacpass-identity@^0.0.30:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacpass-key-manager@^0.0.20:
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/lacpass-key-manager/-/lacpass-key-manager-0.0.20.tgz#a95ae7060f9056900c89d4b32ffc81297196d33e"
-  integrity sha512-0rsnjycViJS3zsd5JeTAZL4+n0QRCHtVVrOqQHNnPTqYivuTG79bOUMQdRWwed1qmUBhrr3EHYWlR2COBuSBrA==
+lacpass-key-manager@^0.0.21:
+  version "0.0.21"
+  resolved "https://registry.yarnpkg.com/lacpass-key-manager/-/lacpass-key-manager-0.0.21.tgz#8e062eff97427de85aed96cb93860f8a86f680c1"
+  integrity sha512-hesVaKyQWQxAH0tjMo9Vo5vnanQYbR+oPBqlqRFRnBdiwxi3QfIpACUFT7RsdMfa7+DiTGk6RqZha+1WXVN4PQ==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     DIDComm-js "git+https://github.com/decentralized-identity/DIDComm-js.git"

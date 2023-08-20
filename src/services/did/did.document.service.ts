@@ -37,4 +37,21 @@ export class DidDocumentService {
     }
     return undefined;
   }
+
+  static findPublicKeyFromJwkAssertionKey(
+    doc: any,
+    algorithm: string,
+    curve: 'secp256k1'
+  ): Uint8Array | undefined {
+    const key = doc.assertionMethod.find(
+      (ka: { type: string }) => ka.type === algorithm
+    );
+    if (!key) {
+      return undefined;
+    }
+    if (key.publicKeyJwk && key.publicKeyJwk.crv == curve) {
+      return Buffer.from(key.publicKeyJwk.x, 'base64url');
+    }
+    return undefined;
+  }
 }

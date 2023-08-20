@@ -5,7 +5,9 @@ import {
   didLacAttributes,
   IEthereumTransactionResponse,
   INewAttribute,
-  INewECAttributeCreationResponse
+  INewECAttributeCreationResponse,
+  INewJwkAttribute,
+  INewJwkAttributeCreationResponse
 } from 'lacpass-identity';
 import {
   DID_LAC1_CONTROLLER,
@@ -17,7 +19,8 @@ import {
   DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT,
   DID_LAC1_REVOKE_JWK_ATTR_FROM_X509_CERT,
   DID_LAC1_ADD_NEW_SECP256K1_ATTRIBUTE,
-  DID_LAC1_ADD_NEW_ED25519_ATTRIBUTE
+  DID_LAC1_ADD_NEW_ED25519_ATTRIBUTE,
+  DID_LAC1_ADD_NEW_JWK_ATTRIBUTE
 } from '../../../config';
 import { InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../../constants/errorMessages';
@@ -51,6 +54,11 @@ export class DidServiceLac1 {
     newEd25519Attribute: INewAttribute
   ) => Promise<INewECAttributeCreationResponse>;
 
+  // Jwk attribute
+  public addNewJwkAttribute: (
+    attribute: INewJwkAttribute
+  ) => Promise<INewJwkAttributeCreationResponse>;
+
   // TODO: Chain of trust
 
   private didService: DidLacService | null;
@@ -73,6 +81,8 @@ export class DidServiceLac1 {
 
       this.addNewEd25519Attribute = this.addNewEd25519AttributeByLib;
 
+      this.addNewJwkAttribute = this.addNewJwkAttributeByLib;
+
       const S = require('lacpass-identity').DidLac1Service;
       this.didService = new S();
     } else {
@@ -92,6 +102,7 @@ export class DidServiceLac1 {
 
       this.addNewEd25519Attribute =
         this.addNewEd25519AttributeByExternalService;
+      this.addNewJwkAttribute = this.addNewJwkAttributeByExternalService;
     }
   }
   private async createDidByLib(): Promise<DidType> {
@@ -277,5 +288,32 @@ export class DidServiceLac1 {
       throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
     }
     return (await result.json()) as INewECAttributeCreationResponse;
+  }
+
+  private async addNewJwkAttributeByLib(
+    attribute: INewJwkAttribute
+  ): Promise<INewJwkAttributeCreationResponse> {
+    return await this.didService?.addNewJwkAttribute(attribute);
+  }
+
+  private async addNewJwkAttributeByExternalService(
+    newAttribute: INewJwkAttribute
+  ): Promise<INewJwkAttributeCreationResponse> {
+    const result = await fetch(
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_ADD_NEW_JWK_ATTRIBUTE}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAttribute)
+      }
+    );
+    console.log('status', result.status);
+    if (result.status !== 200) {
+      console.log(await result.text());
+      throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
+    }
+    return (await result.json()) as INewJwkAttributeCreationResponse;
   }
 }

@@ -2,6 +2,7 @@ import { DidServiceLac1 } from '@services/external/did-lac/did-service';
 import { SecureRelayService } from '@services/secure-relay-service/secure.relay.service';
 import { randomUUID } from 'crypto';
 import { INewAttribute } from 'lacpass-chain-of-trust';
+import { INewJwkAttribute, EcJwk } from 'lacpass-identity';
 import {
   DDCCQrEvidence,
   ICredential,
@@ -25,6 +26,8 @@ import {
 } from './ddcc.format';
 import { validateOrReject } from 'class-validator';
 import { canonicalize } from 'json-canonicalize';
+import { KeyManagerService } from '@services/external/key-manager/key-manager.service';
+import { ISignPlainMessageByAddress } from 'lacpass-key-manager';
 
 @Service()
 export class VerifiableCredentialService {
@@ -38,10 +41,13 @@ export class VerifiableCredentialService {
     string,
     string
   >();
+  private assertionPublicKeys: Map<string, string> = new Map<string, string>();
   private didServiceLac1: DidServiceLac1;
+  private keyManager: KeyManagerService;
   constructor() {
     this.secureRelayService = new SecureRelayService();
     this.didServiceLac1 = new DidServiceLac1();
+    this.keyManager = new KeyManagerService();
   }
   async send(formData: any, _evidence: Express.Multer.File): Promise<any> {
     const ddccVerifiableCredentialData = await this._validateAndExtractData(
@@ -53,12 +59,13 @@ export class VerifiableCredentialService {
       ddccVerifiableCredentialData,
       base64QrCode
     );
+    const { issuerDid, receiverDid } = ddccVerifiableCredentialData;
     const ddccVerifiableCredential = (await this.addProof(
-      ddccCredential
+      ddccCredential,
+      issuerDid
     )) as IDDCCVerifiableCredential;
     // TODO: send ddcc credential through secure relay server
     const message = JSON.stringify(ddccVerifiableCredential); // TODO: stringify VC
-    const { issuerDid, receiverDid } = ddccVerifiableCredentialData;
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
@@ -110,6 +117,49 @@ export class VerifiableCredentialService {
     this.authPublicKeys.set(did, buffPubKey);
     this.keyExchangePublicKeys.set(did, hexPubKey);
     return Buffer.from(buffPubKey).toString('hex');
+  }
+
+  async getOrSetOrCreateAssertionPublicKeyFromDid(
+    did: string,
+    type: 'secp256k1'
+  ): Promise<string> {
+    const assertionPublicKey = this.assertionPublicKeys.get(did);
+    if (assertionPublicKey) {
+      return assertionPublicKey;
+    }
+    const assertionRelationshipSearchKeyword = 'JsonWebKey2020';
+    const didDoc = await this.secureRelayService.resolver.resolve(did);
+    const foundAssertionPublicKey =
+      DidDocumentService.findPublicKeyFromJwkAssertionKey(
+        didDoc,
+        assertionRelationshipSearchKeyword,
+        type
+      );
+    // because method is jsonWeKey2020, the expected format is to be 'json'
+    if (foundAssertionPublicKey) {
+      const hexPubKey = Buffer.from(foundAssertionPublicKey).toString('hex');
+      this.assertionPublicKeys.set(did, hexPubKey);
+      return hexPubKey;
+    }
+    const validDays = 365;
+    this.log.info(
+      // eslint-disable-next-line max-len
+      `Couldn't find assertion key with type ${assertionRelationshipSearchKeyword} for did ${did} ... creating one for ${validDays} days`
+    );
+    const attribute: INewJwkAttribute = {
+      did,
+      validDays,
+      relation: 'asse',
+      jwkType: type
+    };
+
+    const jwkCreationResponse = await this.didServiceLac1.addNewJwkAttribute(
+      attribute
+    );
+    const base64UrlPubKey = (jwkCreationResponse.jwk as EcJwk).x;
+    const hexPubKey = Buffer.from(base64UrlPubKey, 'base64url').toString('hex');
+    this.assertionPublicKeys.set(did, hexPubKey);
+    return hexPubKey;
   }
 
   async getAuthAddressFromDid(issuerDid: string): Promise<string> {
@@ -297,31 +347,53 @@ export class VerifiableCredentialService {
 
   /**
    * Adds proof to a Credential of type DDCC
-   * @param {IDDCCCredential} credential: Credential without proof
+   * @param {IDDCCCredential} credential - Credential without proof
+   * @param {string} issuerDid - Issuing entity
    * @return {Promise<IDDCCVerifiableCredential>} A DDCC Verifiable credential
    */
-  async addProof(credential: ICredential): Promise<IVerifiableCredential> {
-    const proof = await this.getIType1ProofAssertionMethodTemplate(credential);
+  async addProof(
+    credential: ICredential,
+    issuerDid: string
+  ): Promise<IVerifiableCredential> {
+    const proof = await this.getIType1ProofAssertionMethodTemplate(
+      credential,
+      issuerDid
+    );
     // TODO: add custom fields to proof
     return { ...credential, proof };
   }
 
   async getIType1ProofAssertionMethodTemplate(
-    credentialSubject: ICredential
+    credentialSubject: ICredential,
+    issuerDid: string
   ): Promise<IType1Proof> {
     const credentialSubjectString = canonicalize(credentialSubject);
-    const credentialHash = crypto
-      .createHash('sha256')
-      .update(credentialSubjectString)
-      .digest('hex');
-    console.log('credential hash', credentialHash);
+    const credentialHash =
+      '0x' +
+      crypto.createHash('sha256').update(credentialSubjectString).digest('hex');
+    let assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
+      issuerDid,
+      'secp256k1'
+    );
+    assertionKey = assertionKey.startsWith('0x')
+      ? assertionKey
+      : '0x' + assertionKey;
+    const messageRequest: ISignPlainMessageByAddress = {
+      address: ethers.computeAddress(assertionKey),
+      messageHash: credentialHash
+    };
+    const proofValueResponse = await this.keyManager.secpSignPlainMessage(
+      messageRequest
+    );
+    // TODO: add onchain proof
+    // TODO: add domain according to encoding algorithm for this
     const type1Proof: IType1Proof = {
-      id: '',
-      type: '',
+      id: issuerDid,
+      type: 'EcdsaSecp256k1Signature2019',
       proofPurpose: 'assertionMethod',
       verificationMethod: '',
       domain: '',
-      proofValue: ''
+      proofValue: proofValueResponse.signature
     };
     return type1Proof;
   }

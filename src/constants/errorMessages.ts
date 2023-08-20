@@ -36,7 +36,8 @@ export enum ErrorsMessages {
   DDCC_DATA_ERROR = 'No ddcc data was found in the incoming request',
   VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
   COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
-  VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found'
+  VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
+  PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message'
 }
 
 export const Errors = {
