@@ -42,7 +42,7 @@ export class DidDocumentService {
     doc: any,
     algorithm: string,
     curve: 'secp256k1'
-  ): Uint8Array | undefined {
+  ): { id: string; publicKeyBuffer: Uint8Array } | undefined {
     const key = doc.assertionMethod.find(
       (ka: { type: string }) => ka.type === algorithm
     );
@@ -50,7 +50,10 @@ export class DidDocumentService {
       return undefined;
     }
     if (key.publicKeyJwk && key.publicKeyJwk.crv == curve) {
-      return Buffer.from(key.publicKeyJwk.x, 'base64url');
+      return {
+        id: key.id,
+        publicKeyBuffer: Buffer.from(key.publicKeyJwk.x, 'base64url')
+      };
     }
     return undefined;
   }

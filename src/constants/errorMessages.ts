@@ -39,6 +39,7 @@ export enum ErrorsMessages {
   VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
   PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
   CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
+  VM_NOT_FOUND = 'Verification method was not found'
 }
 
 export const Errors = {

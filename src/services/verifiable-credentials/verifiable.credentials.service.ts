@@ -2,7 +2,7 @@ import { DidServiceLac1 } from '@services/external/did-lac/did-service';
 import { SecureRelayService } from '@services/secure-relay-service/secure.relay.service';
 import { randomUUID } from 'crypto';
 import { INewAttribute } from 'lacpass-chain-of-trust';
-import { INewJwkAttribute, EcJwk } from 'lacpass-identity';
+import { INewJwkAttribute } from 'lacpass-identity';
 import {
   DDCCQrEvidence,
   ICredential,
@@ -41,7 +41,10 @@ export class VerifiableCredentialService {
     string,
     string
   >();
-  private assertionPublicKeys: Map<string, string> = new Map<string, string>();
+  private assertionPublicKeys: Map<
+    string,
+    { hexPubKey: string; keyId: string }
+  > = new Map<string, { hexPubKey: string; keyId: string }>();
   private didServiceLac1: DidServiceLac1;
   private keyManager: KeyManagerService;
   constructor() {
@@ -122,14 +125,14 @@ export class VerifiableCredentialService {
   async getOrSetOrCreateAssertionPublicKeyFromDid(
     did: string,
     type: 'secp256k1'
-  ): Promise<string> {
+  ): Promise<{ hexPubKey: string; keyId: string }> {
     const assertionPublicKey = this.assertionPublicKeys.get(did);
     if (assertionPublicKey) {
       return assertionPublicKey;
     }
     const assertionRelationshipSearchKeyword = 'JsonWebKey2020';
-    const didDoc = await this.secureRelayService.resolver.resolve(did);
-    const foundAssertionPublicKey =
+    let didDoc = await this.secureRelayService.resolver.resolve(did);
+    let foundAssertionPublicKey =
       DidDocumentService.findPublicKeyFromJwkAssertionKey(
         didDoc,
         assertionRelationshipSearchKeyword,
@@ -137,10 +140,17 @@ export class VerifiableCredentialService {
       );
     // because method is jsonWeKey2020, the expected format is to be 'json'
     if (foundAssertionPublicKey) {
-      const hexPubKey = Buffer.from(foundAssertionPublicKey).toString('hex');
-      this.assertionPublicKeys.set(did, hexPubKey);
-      return hexPubKey;
+      const hexPubKey = Buffer.from(
+        foundAssertionPublicKey.publicKeyBuffer
+      ).toString('hex');
+      const pk = {
+        hexPubKey,
+        keyId: foundAssertionPublicKey.id
+      };
+      this.assertionPublicKeys.set(did, pk);
+      return pk;
     }
+
     const validDays = 365;
     this.log.info(
       // eslint-disable-next-line max-len
@@ -153,13 +163,26 @@ export class VerifiableCredentialService {
       jwkType: type
     };
 
-    const jwkCreationResponse = await this.didServiceLac1.addNewJwkAttribute(
-      attribute
-    );
-    const base64UrlPubKey = (jwkCreationResponse.jwk as EcJwk).x;
-    const hexPubKey = Buffer.from(base64UrlPubKey, 'base64url').toString('hex');
-    this.assertionPublicKeys.set(did, hexPubKey);
-    return hexPubKey;
+    await this.didServiceLac1.addNewJwkAttribute(attribute);
+    didDoc = await this.secureRelayService.resolver.resolve(did);
+    foundAssertionPublicKey =
+      DidDocumentService.findPublicKeyFromJwkAssertionKey(
+        didDoc,
+        assertionRelationshipSearchKeyword,
+        type
+      );
+    if (foundAssertionPublicKey) {
+      const hexPubKey = Buffer.from(
+        foundAssertionPublicKey.publicKeyBuffer
+      ).toString('hex');
+      const pk = {
+        hexPubKey,
+        keyId: foundAssertionPublicKey.id
+      };
+      this.assertionPublicKeys.set(did, pk);
+      return pk;
+    }
+    throw new BadRequestError(ErrorsMessages.VM_NOT_FOUND);
   }
 
   async getAuthAddressFromDid(issuerDid: string): Promise<string> {
@@ -374,15 +397,15 @@ export class VerifiableCredentialService {
     const credentialHash =
       '0x' +
       crypto.createHash('sha256').update(credentialDataString).digest('hex');
-    let assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
+    const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'secp256k1'
     );
-    assertionKey = assertionKey.startsWith('0x')
-      ? assertionKey
-      : '0x' + assertionKey;
+    const hexPubKey = assertionKey.hexPubKey.startsWith('0x')
+      ? assertionKey.hexPubKey
+      : '0x' + assertionKey.hexPubKey;
     const messageRequest: ISignPlainMessageByAddress = {
-      address: ethers.computeAddress(assertionKey),
+      address: ethers.computeAddress(hexPubKey),
       messageHash: credentialHash
     };
     const proofValueResponse = await this.keyManager.secpSignPlainMessage(
@@ -394,7 +417,7 @@ export class VerifiableCredentialService {
       id: issuerDid,
       type: 'EcdsaSecp256k1Signature2019',
       proofPurpose: 'assertionMethod',
-      verificationMethod: '',
+      verificationMethod: assertionKey.keyId,
       domain: '',
       proofValue: proofValueResponse.signature
     };
