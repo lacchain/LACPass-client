@@ -1,5 +1,5 @@
 export interface ICredential {
-  context: string[];
+  '@context': string[];
   id: string;
   type: string[];
   issuer: string;

@@ -314,17 +314,23 @@ export class VerifiableCredentialService {
   }
   async new(): Promise<IDDCCCredential> {
     return {
-      context: [
+      '@context': [
         'https://www.w3.org/2018/credentials/v1',
         // eslint-disable-next-line max-len
         'https://credentials-library.lacchain.net/credentials/health/vaccination/v1', // TODO: define
         'https://credentials-library.lacchain.net/credentials/health/DDCCQRCCode/v1'
       ],
+      // eslint-disable-next-line quote-props
       id: randomUUID().toString(),
+      // eslint-disable-next-line quote-props
       type: ['VerifiableCredential', 'VaccinationCertificate', 'DDCCQRCCode'],
+      // eslint-disable-next-line quote-props
       issuer: '',
+      // eslint-disable-next-line quote-props
       issuanceDate: new Date().toJSON(),
+      // eslint-disable-next-line quote-props
       expirationDate: '',
+      // eslint-disable-next-line quote-props
       credentialSubject: {
         id: '',
         name: '',
@@ -341,6 +347,7 @@ export class VerifiableCredentialService {
           lot: ''
         }
       },
+      // eslint-disable-next-line quote-props
       evidence: []
     };
   }
