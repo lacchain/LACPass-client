@@ -37,7 +37,8 @@ export enum ErrorsMessages {
   VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
   COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
   VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
-  PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message'
+  PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
+  CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
 }
 
 export const Errors = {

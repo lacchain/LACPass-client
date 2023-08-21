@@ -63,10 +63,12 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git",
     "aws-sdk": "^2.1116.0",
     "base-x": "^4.0.0",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.0",
+    "canonicalize": "^2.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.12.2",
     "class-validator-jsonschema": "^2.2.0",
@@ -97,8 +99,6 @@
     "typeorm": "^0.2.41",
     "typeorm-seeding": "^1.6.1",
     "typescript-logging": "^2.1.0",
-    "typescript-logging-log4ts-style": "^2.1.0",
-    "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git",
-    "json-canonicalize": "^1.0.6"
+    "typescript-logging-log4ts-style": "^2.1.0"
   }
 }

@@ -25,7 +25,7 @@ import {
   Vaccine
 } from './ddcc.format';
 import { validateOrReject } from 'class-validator';
-import { canonicalize } from 'json-canonicalize';
+import canonicalize from 'canonicalize';
 import { KeyManagerService } from '@services/external/key-manager/key-manager.service';
 import { ISignPlainMessageByAddress } from 'lacpass-key-manager';
 
@@ -364,13 +364,16 @@ export class VerifiableCredentialService {
   }
 
   async getIType1ProofAssertionMethodTemplate(
-    credentialSubject: ICredential,
+    credentialData: ICredential,
     issuerDid: string
   ): Promise<IType1Proof> {
-    const credentialSubjectString = canonicalize(credentialSubject);
+    const credentialDataString = canonicalize(credentialData);
+    if (!credentialDataString) {
+      throw new BadRequestError(ErrorsMessages.CANONICALIZE_ERROR);
+    }
     const credentialHash =
       '0x' +
-      crypto.createHash('sha256').update(credentialSubjectString).digest('hex');
+      crypto.createHash('sha256').update(credentialDataString).digest('hex');
     let assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'secp256k1'
