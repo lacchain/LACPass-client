@@ -1,0 +1,6 @@
+export const VERIFICATION_REGISTRY_CONTRACT_ADDRESSES: Map<string, string> =
+  new Map<string, string>();
+VERIFICATION_REGISTRY_CONTRACT_ADDRESSES.set(
+  '0x9e55c',
+  '0xcd438C44caf4346EaA44ff47825c6C34Ce73a616'
+);

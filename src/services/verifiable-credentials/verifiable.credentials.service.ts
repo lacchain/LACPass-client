@@ -1,7 +1,11 @@
 import { DidServiceLac1 } from '@services/external/did-lac/did-service';
 import { SecureRelayService } from '@services/secure-relay-service/secure.relay.service';
 import { randomUUID } from 'crypto';
-import { INewAttribute } from 'lacpass-chain-of-trust';
+import {
+  INewAttribute,
+  resolveChainOfTrustAddress,
+  resolvePublicDirectoryAddress
+} from 'lacpass-chain-of-trust';
 import { INewJwkAttribute } from 'lacpass-identity';
 import {
   DDCCQrEvidence,
@@ -13,8 +17,12 @@ import {
 } from 'src/interfaces/verifiable-credential/ddcc.credential';
 import crypto from 'crypto';
 import { Service } from 'typedi';
-import { ethers } from 'ethers';
-import { log4TSProvider } from '../../config';
+import { ethers, keccak256 } from 'ethers';
+import {
+  CHAIN_ID,
+  log4TSProvider,
+  resolveVerificationRegistryContractAddress
+} from '../../config';
 import { DidDocumentService } from '@services/did/did.document.service';
 import { BadRequestError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
@@ -31,6 +39,12 @@ import { ISignPlainMessageByAddress } from 'lacpass-key-manager';
 
 @Service()
 export class VerifiableCredentialService {
+  private readonly base58 = require('base-x')(
+    '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+  );
+  static type = '0001';
+  static version = '0001';
+  private readonly domain: string;
   log = log4TSProvider.getLogger('IdentityManagerService');
   private secureRelayService: SecureRelayService;
   private authPublicKeys: Map<string, Uint8Array> = new Map<
@@ -51,6 +65,7 @@ export class VerifiableCredentialService {
     this.secureRelayService = new SecureRelayService();
     this.didServiceLac1 = new DidServiceLac1();
     this.keyManager = new KeyManagerService();
+    this.domain = this.encode();
   }
   async send(formData: any, _evidence: Express.Multer.File): Promise<any> {
     const ddccVerifiableCredentialData = await this._validateAndExtractData(
@@ -412,15 +427,37 @@ export class VerifiableCredentialService {
       messageRequest
     );
     // TODO: add onchain proof
-    // TODO: add domain according to encoding algorithm for this
     const type1Proof: IType1Proof = {
       id: issuerDid,
       type: 'EcdsaSecp256k1Signature2019',
       proofPurpose: 'assertionMethod',
       verificationMethod: assertionKey.keyId,
-      domain: '',
+      domain: this.domain,
       proofValue: proofValueResponse.signature
     };
     return type1Proof;
+  }
+
+  private encode() {
+    const publicDirectoryContractAddress = resolvePublicDirectoryAddress();
+    const chainOfTrustContractAddress = resolveChainOfTrustAddress();
+    const verificationRegistryContractAddress =
+      resolveVerificationRegistryContractAddress();
+    const payload = [
+      Buffer.from(VerifiableCredentialService.version.replace('0x', ''), 'hex'),
+      Buffer.from(VerifiableCredentialService.type.replace('0x', ''), 'hex'),
+      Buffer.from(verificationRegistryContractAddress.replace('0x', ''), 'hex'),
+      Buffer.from(publicDirectoryContractAddress.replace('0x', ''), 'hex'),
+      Buffer.from(chainOfTrustContractAddress.replace('0x', ''), 'hex'),
+      Buffer.from(CHAIN_ID.replace('0x', ''), 'hex')
+    ];
+    payload.push(this.checksum(payload));
+    return this.base58.encode(Buffer.concat(payload));
+  }
+  private checksum(payload: Buffer[]): Buffer {
+    return Buffer.from(
+      keccak256(Buffer.concat(payload)).replace('0x', ''),
+      'hex'
+    ).subarray(0, 4);
   }
 }

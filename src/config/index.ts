@@ -1,5 +1,8 @@
+// eslint-disable-next-line max-len
+import { VERIFICATION_REGISTRY_CONTRACT_ADDRESSES } from '@constants/verification.registry';
 import { randomUUID } from 'crypto';
 import { config } from 'dotenv';
+import { isAddress } from 'ethers';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 
@@ -16,6 +19,58 @@ export const log4TSProvider = Log4TSProvider.createProvider(
     ]
   }
 );
+
+const log = log4TSProvider.getLogger('lacpass-client-config');
+
+export const getChainId = (): string => {
+  if (!process.env.CHAIN_ID) {
+    console.error('==> Please set CHAIN_ID in your .env');
+    process.exit(1);
+  }
+  return process.env.CHAIN_ID;
+};
+
+export const CHAIN_ID = getChainId();
+
+export const resolveVerificationRegistryContractAddress = (
+  verificationRegistryContractAddress = process.env
+    .VERIFICATION_REGISTRY_CONTRACT_ADDRESS
+): string => {
+  if (verificationRegistryContractAddress) {
+    if (!isAddress(verificationRegistryContractAddress)) {
+      log.error(
+        'Specified VERIFICATION_REGISTRY_CONTRACT_ADDRESS',
+        process.env.VERIFICATION_REGISTRY_CONTRACT_ADDRESS,
+        'is not a valid address ... exiting'
+      );
+      process.exit(1); // exiting since this is a critical error
+    }
+    // TODO: validate just by making a call to contract to validate that's a correct one
+    // could just verify against the desired version
+    log.info(
+      'Returning custom verification registry contract address',
+      verificationRegistryContractAddress
+    );
+    return verificationRegistryContractAddress;
+  }
+  const wellKnownverificationRegistryContractAddress =
+    VERIFICATION_REGISTRY_CONTRACT_ADDRESSES.get(CHAIN_ID);
+  if (!wellKnownverificationRegistryContractAddress) {
+    log.error(
+      'Could not find well-known verification registry contract address for chain',
+      CHAIN_ID
+    );
+    process.exit(1); // exiting since this is a critical error
+  }
+  log.info(
+    'Returning default verification registry contract address',
+    wellKnownverificationRegistryContractAddress
+  );
+  return wellKnownverificationRegistryContractAddress;
+};
+
+export const VERIFICATION_REGISTRY_CONTRACT_ADDRESS =
+  resolveVerificationRegistryContractAddress();
 
 export const getDidResolverUrl = (): string => {
   if (!process.env.DID_RESOLVER_URL) {

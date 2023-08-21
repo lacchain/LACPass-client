@@ -5790,10 +5790,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacpass-chain-of-trust@^0.0.20:
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.20.tgz#1a0822e7426d5bd1606059b65c70c5701a6504b5"
-  integrity sha512-xevJKTazJR+yKIdq3vhF2Jddf+gxdvV+3pFHRE9AwpbOC41gTsv0zqQqvY48rfCOY9RHUyCUacRrtl1mYR0TRA==
+lacpass-chain-of-trust@^0.0.21:
+  version "0.0.21"
+  resolved "https://registry.yarnpkg.com/lacpass-chain-of-trust/-/lacpass-chain-of-trust-0.0.21.tgz#e8076fefbdd4f03459b4357f26c5dc65355e008b"
+  integrity sha512-Gi9OXqaWDc30DRnhHavkt8S+U5Ov/KlfC5X9Enp52kr67JMuNSlYpkg6/N1UATEZ6WEsIbInpakgoaXP8zPh6w==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
