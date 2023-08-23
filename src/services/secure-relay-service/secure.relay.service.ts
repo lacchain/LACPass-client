@@ -91,7 +91,7 @@ export class SecureRelayService {
     const encryptedToSecureRelayMessageDeliverer =
       await this.keyManager.didCommEncrypt(args1);
 
-    await this.sendDataThroughSecureRelayMessageDeliverer(
+    return this.sendDataThroughSecureRelayMessageDeliverer(
       didJwt,
       encryptedToSecureRelayMessageDeliverer
     );
@@ -118,17 +118,24 @@ export class SecureRelayService {
     );
   }
 
+  /**
+   * @description Sends encripted message to a secure relay message
+   * @param {string} token
+   * @param {any} message
+   * @return {{deliveryId: string}} an "id" returned by the secure relay message
+   * acknowledging the received message
+   */
   private async sendDataThroughSecureRelayMessageDeliverer(
     token: string,
     message: any
-  ): Promise<any> {
+  ): Promise<{ deliveryId: string }> {
     const result = await fetch(
       `${SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL}${SECURE_RELAY_MESSAGE_DELIVERER_SEND}`,
       {
         method: 'POST',
         headers: {
           // eslint-disable-next-line quote-props
-          Authorization: token,
+          token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(message)
@@ -141,6 +148,7 @@ export class SecureRelayService {
         ErrorsMessages.SECURE_RELAY_MESSAGE_DELIVERY_ERROR
       );
     }
-    return (await result.json()) as any;
+    const deliveryId = (await result.json()) as string;
+    return { deliveryId };
   }
 }

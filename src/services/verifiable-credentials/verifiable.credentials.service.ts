@@ -184,17 +184,13 @@ export class VerifiableCredentialService {
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
-    await this.secureRelayService.sendData(
+    return this.secureRelayService.sendData(
       issuerDid,
       authAddress,
       keyExchangePublicKey,
       receiverDid,
       message
     );
-    return {
-      status: 'Ok',
-      ddccVerifiableCredential
-    };
   }
   async getOrSetOrCreateKeyExchangePublicKeyFromDid(
     did: string
