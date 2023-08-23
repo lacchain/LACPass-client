@@ -39,7 +39,19 @@ export enum ErrorsMessages {
   VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
   PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
   CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
-  VM_NOT_FOUND = 'Verification method was not found'
+  VM_NOT_FOUND = 'Verification method was not found',
+  BRAND_CODE_NOT_FOUND = 'No displayable name found for the specified brand',
+  DOCUMENT_REFERENCE_NOT_FOUND = 'Document reference not found in the incoming request',
+  // eslint-disable-next-line max-len
+  DOCUMENT_REFERENCE_CONTENT_NOT_FOUND = '"content" was not found inside Document reference',
+  INVALID_DOCUMENT_REFERENCE = 'The specified document reference is invalid',
+  IMAGE_NOT_FOUND = 'No image with contentType "image/png" was found',
+  INVALID_CONTENT_ATTRIBUTE = 'The specified content attribute is invalid',
+  INVALID_ATTACHMENT_ATTRIBUTE = 'The specified attachment attribute is invalid',
+  DDCCCOREDATASET_NOT_FOUND = 'No ddcCoredataSet was found',
+  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed',
+  // eslint-disable-next-line max-len
+  DDCCCOREDATASET_ATTRIBUTE_NOT_FOUND = 'ddccCoreDataSet attribute inside parsed data'
 }
 
 export const Errors = {

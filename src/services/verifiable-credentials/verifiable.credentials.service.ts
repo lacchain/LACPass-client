@@ -8,7 +8,6 @@ import {
 } from 'lacpass-chain-of-trust';
 import { INewJwkAttribute } from 'lacpass-identity';
 import {
-  DDCCQrEvidence,
   ICredential,
   IDDCCCredential,
   IDDCCVerifiableCredential,
@@ -29,13 +28,21 @@ import { ErrorsMessages } from '../../constants/errorMessages';
 import {
   Country,
   DDCCFormatValidator,
-  DDCCVerifiableCredentialData,
+  DDCCCoreDataSet,
   Vaccine
 } from './ddcc.format';
 import { validateOrReject } from 'class-validator';
 import canonicalize from 'canonicalize';
 import { KeyManagerService } from '@services/external/key-manager/key-manager.service';
 import { ISignPlainMessageByAddress } from 'lacpass-key-manager';
+import { MEDICINAL_PRODUCT_NAMES } from '@constants/ddcc.medicinal.code.mapper';
+import {
+  IAttachment,
+  IContent,
+  IDDCCToVC,
+  IDocumentReference
+} from './iddcc.to.vc';
+import { Attachment, Content, DocumentReference } from '@dto/DDCCToVC';
 
 @Service()
 export class VerifiableCredentialService {
@@ -67,17 +74,107 @@ export class VerifiableCredentialService {
     this.keyManager = new KeyManagerService();
     this.domain = this.encode();
   }
-  async send(formData: any, _evidence: Express.Multer.File): Promise<any> {
-    const ddccVerifiableCredentialData = await this._validateAndExtractData(
-      formData
+  async transformAndSend(ddccToVc: IDDCCToVC): Promise<any> {
+    const foundDocumentReference = ddccToVc.bundle.entry.find(
+      el => el.resource.resourceType === 'DocumentReference'
     );
-    const base64QrCode = _evidence.buffer.toString('base64');
+    if (!foundDocumentReference) {
+      throw new BadRequestError(ErrorsMessages.DOCUMENT_REFERENCE_NOT_FOUND);
+    }
+    const documentReference =
+      foundDocumentReference.resource as IDocumentReference;
+    const imageContent = documentReference.content.find(
+      el => el.attachment?.contentType === 'image/png'
+    );
+    if (!imageContent) {
+      throw new BadRequestError(ErrorsMessages.IMAGE_NOT_FOUND);
+    }
+    await this._validateContentItem(imageContent);
+    // TODO: validate is a valid image
+    const ddccCoreDataSet = documentReference.content.find(
+      el => el.attachment?.contentType === 'application/json'
+    );
+    if (!ddccCoreDataSet) {
+      throw new BadRequestError(ErrorsMessages.DDCCCOREDATASET_NOT_FOUND);
+    }
+    await this._validateContentItem(ddccCoreDataSet);
+    await this._validateDocumentReference(documentReference);
+
+    let parsedDdccCoreDataSet: DDCCFormatValidator;
+    try {
+      const stringDdccCoreDataSet = Buffer.from(
+        ddccCoreDataSet.attachment.data,
+        'base64'
+      ).toString();
+      parsedDdccCoreDataSet = JSON.parse(stringDdccCoreDataSet);
+    } catch (err) {
+      throw new BadRequestError(ErrorsMessages.DDCCCOREDATASET_PARSE_ERROR);
+    }
+    const ddccCoreDataSetObject = await this._validateAndExtractData({
+      issuerDid: ddccToVc.issuerDid,
+      receiverDid: ddccToVc.receiverDid,
+      ddccData: parsedDdccCoreDataSet
+    } as DDCCCoreDataSet);
+    const qrDescription = documentReference.description;
+    return this.send(ddccCoreDataSetObject, imageContent, qrDescription);
+  }
+  async _validateContentItem(item: IContent) {
+    const itemToValidate = new Content();
+    await this._validateAttachment(item.attachment);
+    itemToValidate.attachment = item.attachment;
+    // eslint-disable-next-line max-len
+    itemToValidate.format = item.format; // skipping format validation, since it is not used
+    try {
+      await validateOrReject(itemToValidate);
+    } catch (err) {
+      const errorMessage =
+        ErrorsMessages.INVALID_CONTENT_ATTRIBUTE + ': ' + err;
+      throw new BadRequestError(errorMessage);
+    }
+  }
+  async _validateAttachment(attachment: IAttachment) {
+    const attachmentToValidate = new Attachment();
+    attachmentToValidate.contentType = attachment.contentType;
+    attachmentToValidate.data = attachment.data;
+    try {
+      await validateOrReject(attachmentToValidate);
+    } catch (err) {
+      const errorMessage =
+        ErrorsMessages.INVALID_ATTACHMENT_ATTRIBUTE + ': ' + err;
+      this.log.info(errorMessage);
+      throw new BadRequestError(errorMessage);
+    }
+  }
+  async _validateDocumentReference(documentReference: IDocumentReference) {
+    const { content, description, resourceType } = documentReference;
+    const drToValidate = new DocumentReference();
+    drToValidate.content = content;
+    drToValidate.description = description;
+    drToValidate.resourceType = resourceType;
+    try {
+      await validateOrReject(drToValidate);
+    } catch (err) {
+      const errorMessage =
+        ErrorsMessages.INVALID_DOCUMENT_REFERENCE + ': ' + err;
+      this.log.info(errorMessage);
+      throw new BadRequestError(
+        // eslint-disable-next-line max-len
+        errorMessage // ErrorsMessages.DOCUMENT_REFERENCE_CONTENT_NOT_FOUND
+      );
+    }
+  }
+  async send(
+    ddccCoreDataSet: DDCCCoreDataSet,
+    imageContent: IContent,
+    qrDescription: string
+  ): Promise<any> {
     // TODO: send credentials
     const ddccCredential = await this.assembleDDCCCredential(
-      ddccVerifiableCredentialData,
-      base64QrCode
+      ddccCoreDataSet,
+      imageContent.attachment,
+      qrDescription
     );
-    const { issuerDid, receiverDid } = ddccVerifiableCredentialData;
+    const { issuerDid, receiverDid } = ddccCoreDataSet;
     const ddccVerifiableCredential = (await this.addProof(
       ddccCredential,
       issuerDid
@@ -293,100 +390,122 @@ export class VerifiableCredentialService {
   }
 
   async _validateAndExtractData(
-    formData: any
-  ): Promise<DDCCVerifiableCredentialData> {
-    const ddccInputData = JSON.parse(
-      formData.data
-    ) as DDCCVerifiableCredentialData;
-    // validate dids
+    inputData: DDCCCoreDataSet
+  ): Promise<DDCCCoreDataSet> {
     try {
-      await this.didServiceLac1.decodeDid(ddccInputData.issuerDid);
-      await this.didServiceLac1.decodeDid(ddccInputData.receiverDid);
+      await this.didServiceLac1.decodeDid(inputData.issuerDid);
+      await this.didServiceLac1.decodeDid(inputData.receiverDid);
     } catch (e) {
       throw new BadRequestError(ErrorsMessages.INVALID_DID);
     }
-    // validate ddcc incoming data
-    if (!ddccInputData.ddccData) {
+    if (!inputData.ddccData) {
       throw new BadRequestError(ErrorsMessages.DDCC_DATA_ERROR);
     }
-    await this._validateDDCCCoreRequiredData(ddccInputData.ddccData);
-    return ddccInputData;
+    await this._validateDDCCCoreRequiredData(inputData.ddccData);
+    return inputData;
   }
   async new(): Promise<IDDCCCredential> {
     return {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
+        'https://w3id.org/vaccination/v1',
         // eslint-disable-next-line max-len
-        'https://credentials-library.lacchain.net/credentials/health/vaccination/v1', // TODO: define
-        'https://credentials-library.lacchain.net/credentials/health/DDCCQRCCode/v1'
+        'https://credentials-library.lacchain.net/credentials/health/vaccination/v2'
       ],
       // eslint-disable-next-line quote-props
       id: randomUUID().toString(),
       // eslint-disable-next-line quote-props
-      type: ['VerifiableCredential', 'VaccinationCertificate', 'DDCCQRCCode'],
+      type: ['VerifiableCredential', 'VaccinationCertificate'],
       // eslint-disable-next-line quote-props
       issuer: '',
       // eslint-disable-next-line quote-props
+      name: '',
+      // eslint-disable-next-line quote-props
+      identifier: '',
+      // eslint-disable-next-line quote-props
       issuanceDate: new Date().toJSON(),
       // eslint-disable-next-line quote-props
-      expirationDate: '',
-      // eslint-disable-next-line quote-props
       credentialSubject: {
-        id: '',
-        name: '',
-        birthDate: '',
-        sex: '',
-        identifier: '',
+        type: 'VaccinationEvent',
+        batchNumber: '',
+        countryOfVaccination: '',
+        dateOfVaccination: '',
+        administeringCentre: '',
+        order: '',
+        recipient: {
+          type: ['VaccineRecipient', 'VaccineRecipientExtension1'],
+          id: '',
+          name: '',
+          birthDate: '',
+          identifier: '',
+          gender: ''
+        },
         vaccine: {
-          vaccineCode: '',
-          brand: '',
-          dose: 0,
-          country: '',
-          date: '',
-          centre: '',
-          lot: ''
+          type: 'Vaccine',
+          atcCode: '',
+          medicinalProductName: ''
+        },
+        image: {
+          type: 'ImageObject',
+          name: 'QRCode',
+          alternateName: 'QRCode',
+          description:
+            // eslint-disable-next-line max-len
+            'QR code containing the cryptographic information that certifies the validity of the embedded health related content',
+          encodingFormat: '',
+          contentUrl: ''
         }
-      },
-      // eslint-disable-next-line quote-props
-      evidence: []
+      }
     };
   }
 
   /**
    * @description - Assemble a Verifiable Credential starting from data
-   comming from DDCCCoreData
-   * @param {DDCCVerifiableCredentialData} data - data
-   * @param {string} qrEvidence - qr health data in base64 format
+   coming from DDCCCoreDataSet
+   * @param {DDCCCoreDataSet} data - data
+   // eslint-disable-next-line max-len
+   * @param {IAttachment} attachment - qr data and its related additional metadata
+   * @param {string} qrDescription - Description to display
    * @return {IDDCCCredential}
    */
   async assembleDDCCCredential(
-    data: DDCCVerifiableCredentialData,
-    qrEvidence: string
+    data: DDCCCoreDataSet,
+    attachment: IAttachment,
+    qrDescription: string
   ): Promise<IDDCCCredential> {
     const ddccCredential = await this.new();
-    ddccCredential.id = randomUUID();
     const ddccData = data.ddccData;
     const vaccination = data.ddccData.vaccination;
     ddccCredential.issuer = data.issuerDid;
-    ddccCredential.credentialSubject = {
-      id: data.receiverDid,
-      name: ddccData.name,
-      birthDate: ddccData.birthDate,
-      identifier: ddccData.identifier,
-      sex: ddccData.sex,
-      vaccine: {
-        vaccineCode: vaccination.vaccine.code,
-        date: vaccination.date,
-        dose: vaccination.dose,
-        country: vaccination.country.code,
-        centre: vaccination.centre,
-        lot: vaccination.lot,
-        brand: vaccination.brand.code
-      }
-    };
-    ddccCredential.evidence.push({
-      qrb64: qrEvidence
-    } as DDCCQrEvidence);
+    ddccCredential.name = ddccData.certificate.issuer.identifier.value;
+    ddccCredential.identifier = ddccData.certificate.hcid.value;
+    ddccCredential.credentialSubject.batchNumber = vaccination.lot;
+    ddccCredential.credentialSubject.countryOfVaccination =
+      vaccination.country.code;
+    ddccCredential.credentialSubject.dateOfVaccination = vaccination.date;
+    ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
+    ddccCredential.credentialSubject.order = vaccination.dose.toString();
+    ddccCredential.credentialSubject.recipient.id = data.receiverDid;
+    ddccCredential.credentialSubject.recipient.name = ddccData.name;
+    ddccCredential.credentialSubject.recipient.birthDate = ddccData.birthDate;
+    ddccCredential.credentialSubject.recipient.identifier = ddccData.identifier;
+    ddccCredential.credentialSubject.recipient.gender = ddccData.sex;
+    ddccCredential.credentialSubject.vaccine.atcCode =
+      ddccData.vaccination.vaccine.code;
+    const medicinalProductName = MEDICINAL_PRODUCT_NAMES.get(
+      ddccData.vaccination.brand.code
+    );
+    if (!medicinalProductName) {
+      throw new BadRequestError(ErrorsMessages.BRAND_CODE_NOT_FOUND);
+    }
+    ddccCredential.credentialSubject.vaccine.medicinalProductName =
+      medicinalProductName;
+    ddccCredential.credentialSubject.image.encodingFormat =
+      attachment.contentType;
+    ddccCredential.credentialSubject.image.contentUrl = attachment.data;
+    if (qrDescription && qrDescription.length > 0) {
+      ddccCredential.credentialSubject.image.description = qrDescription;
+    }
     return ddccCredential;
   }
 

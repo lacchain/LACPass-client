@@ -1,11 +1,22 @@
 import { Type } from 'class-transformer';
 import { IsDefined, IsNumber, IsString, ValidateNested } from 'class-validator';
 
+export class Identifier {
+  @IsString()
+  value!: string;
+}
+export class Issuer {
+  @Type(() => Identifier)
+  identifier!: Identifier;
+}
+
 export class DDCCCertificate {
   // period .. omitted
-  // hcid .. omitted
+  @Type(() => Identifier)
+  hcid!: Identifier;
   // version .. omitted
-  // issuer .. omitted
+  @Type(() => Issuer)
+  issuer!: Issuer;
 }
 
 export class Vaccine {
@@ -42,7 +53,8 @@ export class Vaccination {
 export class DDCCFormatValidator {
   // @IsString()
   // resourceType!: string; // omitted
-  //   certificate!: DDCCCertificate; // omitted
+  @Type(() => DDCCCertificate)
+  certificate!: DDCCCertificate; // omitted
   @Type(() => Vaccination)
   vaccination!: Vaccination;
   @IsString()
@@ -55,7 +67,7 @@ export class DDCCFormatValidator {
   sex!: string;
 }
 
-export class DDCCVerifiableCredentialData {
+export class DDCCCoreDataSet {
   @IsString()
   issuerDid!: string;
   @IsString()
