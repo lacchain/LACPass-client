@@ -9,7 +9,8 @@ import {
   DID_RESOLVER_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_SEND,
-  SECURE_RELAY_SERVICE_DID
+  SECURE_RELAY_SERVICE_DID,
+  log4TSProvider
 } from '../../config';
 import fetch from 'node-fetch';
 import { DidResolver } from '../external/did-lac/did.resolver';
@@ -19,6 +20,7 @@ const DID_DOC_KEY_AGREEMENT_KEYWORD = 'X25519KeyAgreementKey2019';
 
 @Service()
 export class SecureRelayService {
+  log = log4TSProvider.getLogger('SecureRelayService');
   public readonly resolver: DidResolver;
   private keyManager: KeyManagerService;
   private keyExchangePublicKeys: Map<string, string> = new Map<
@@ -45,7 +47,6 @@ export class SecureRelayService {
       signerAddress: authAddress
     };
     const didJwt = await this.keyManager.createDidJwt(didJwtParams);
-
     const recipientDidDoc = await this.resolver.resolve(recipientDid);
     const recipientPublicKeyBuffer = DidDocumentService.findKeyAgreement(
       recipientDidDoc,
@@ -141,9 +142,9 @@ export class SecureRelayService {
         body: JSON.stringify(message)
       }
     );
-    console.log('status', result.status);
+    this.log.info('status', result.status);
     if (result.status !== 200) {
-      console.log(await result.text());
+      this.log.info(await result.text());
       throw new InternalServerError(
         ErrorsMessages.SECURE_RELAY_MESSAGE_DELIVERY_ERROR
       );

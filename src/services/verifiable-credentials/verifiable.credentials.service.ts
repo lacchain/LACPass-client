@@ -52,7 +52,7 @@ export class VerifiableCredentialService {
   static type = '0001';
   static version = '0001';
   private readonly domain: string;
-  log = log4TSProvider.getLogger('IdentityManagerService');
+  log = log4TSProvider.getLogger('VerifiableCreddentialsService');
   private secureRelayService: SecureRelayService;
   private authPublicKeys: Map<string, Uint8Array> = new Map<
     string,
@@ -213,7 +213,7 @@ export class VerifiableCredentialService {
     const validDays = 365;
     this.log.info(
       // eslint-disable-next-line max-len
-      `Couldn't find key exchange key with type ${keyExchangeAlgorithmSearchKeyword} for did ${did} ... creating one for ${validDays} days`
+      `Couldn't find "key exchange" key with type ${keyExchangeAlgorithmSearchKeyword} for did ${did} ... creating one for ${validDays} days`
     );
     const attribute: INewAttribute = {
       did,
@@ -225,7 +225,6 @@ export class VerifiableCredentialService {
       await this.didServiceLac1.addNewEd25519Attribute(attribute)
     ).publicKey;
     const buffPubKey = Buffer.from(hexPubKey.replace('0x', ''), 'hex');
-    this.authPublicKeys.set(did, buffPubKey);
     this.keyExchangePublicKeys.set(did, hexPubKey);
     return Buffer.from(buffPubKey).toString('hex');
   }
@@ -262,7 +261,7 @@ export class VerifiableCredentialService {
     const validDays = 365;
     this.log.info(
       // eslint-disable-next-line max-len
-      `Couldn't find assertion key with type ${assertionRelationshipSearchKeyword} for did ${did} ... creating one for ${validDays} days`
+      `Couldn't find "assertion" key with type ${assertionRelationshipSearchKeyword} for did ${did} ... creating one for ${validDays} days`
     );
     const attribute: INewJwkAttribute = {
       did,
@@ -320,7 +319,7 @@ export class VerifiableCredentialService {
     const validDays = 365;
     this.log.info(
       // eslint-disable-next-line max-len
-      `Couldn't find auth key with type ${authAlgorithmKeywork} for did ${did} ... creating one for ${validDays} days`
+      `Couldn't find "authentication" key with type ${authAlgorithmKeywork} for did ${did} ... creating one for ${validDays} days`
     );
     const attribute: INewAttribute = {
       did,
