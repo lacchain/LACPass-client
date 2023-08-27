@@ -49,7 +49,7 @@ function createRSASelfSignedCertificate() {
         echo "You specified: "
         echo "Country: '$country'; State: '$state', Organization: '$organizationName', Common Name: '$commonName'"
 
-        echo "Please keep in mind that if you didn't specify a valid Country code or you will probably get an error"
+        echo "Please keep in mind that if you didn't specify a valid Country code you will probably get an error"
         echo
         echo "Please confirm to continue (Y/N): "
         echo
