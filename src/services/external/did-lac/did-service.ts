@@ -8,7 +8,7 @@ import {
   INewECAttributeCreationResponse,
   INewJwkAttribute,
   INewJwkAttributeCreationResponse
-} from 'lacpass-identity';
+} from 'lacchain-identity';
 import {
   DID_LAC1_CONTROLLER,
   DID_LAC1_DECODE_DID,
@@ -83,7 +83,7 @@ export class DidServiceLac1 {
 
       this.addNewJwkAttribute = this.addNewJwkAttributeByLib;
 
-      const S = require('lacpass-identity').DidLac1Service;
+      const S = require('lacchain-identity').DidLac1Service;
       this.didService = new S();
     } else {
       this.log.info('Configuring external service connection');

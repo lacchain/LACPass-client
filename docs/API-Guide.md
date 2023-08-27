@@ -15,11 +15,11 @@ Before interacting with this API, please make sure that:
 
 ### Identity API
 
-* Please follow the instructions detailed [here](https://github.com/lacchain/LACPass-identity/blob/master/docs/API-Guide.md)
+* Please follow the instructions detailed [here](https://github.com/lacchain/LACChain-identity/blob/master/docs/API-Guide.md)
 
 ### Chain Of Trust API
 
-* Please follow the instructions detailed [here](https://github.com/lacchain/LACPass-chain-of-trust/blob/master/docs/api/Manager-Guide.md)
+* Please follow the instructions detailed [here](https://github.com/lacchain/LACChain-trust/blob/master/docs/api/Manager-Guide.md)
 
 ### Credential sending
 

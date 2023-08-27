@@ -14,8 +14,8 @@ import {
   log4TSProvider
 } from '@config';
 
-import { ECEntity, DidEntity } from 'lacpass-identity';
-import { ManagerEntity } from 'lacpass-chain-of-trust';
+import { ECEntity, DidEntity } from 'lacchain-identity';
+import { ManagerEntity } from 'lacchain-trust';
 
 const log = log4TSProvider.getLogger('ormConfig');
 

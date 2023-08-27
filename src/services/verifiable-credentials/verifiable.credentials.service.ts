@@ -5,8 +5,8 @@ import {
   INewAttribute,
   resolveChainOfTrustAddress,
   resolvePublicDirectoryAddress
-} from 'lacpass-chain-of-trust';
-import { INewJwkAttribute } from 'lacpass-identity';
+} from 'lacchain-trust';
+import { INewJwkAttribute } from 'lacchain-identity';
 import {
   ICredential,
   IDDCCCredential,
@@ -34,7 +34,7 @@ import {
 import { validateOrReject } from 'class-validator';
 import canonicalize from 'canonicalize';
 import { KeyManagerService } from '@services/external/key-manager/key-manager.service';
-import { ISignPlainMessageByAddress } from 'lacpass-key-manager';
+import { ISignPlainMessageByAddress } from 'lacchain-key-manager';
 import { MEDICINAL_PRODUCT_NAMES } from '@constants/ddcc.medicinal.code.mapper';
 import {
   IAttachment,

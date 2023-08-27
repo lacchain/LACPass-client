@@ -1,8 +1,8 @@
 import { Service } from 'typedi';
 import { KeyManagerService } from '../external/key-manager/key-manager.service';
-import { IDidJwt } from 'lacpass-key-manager';
+import { IDidJwt } from 'lacchain-key-manager';
 import { DidDocumentService } from '../../services/did/did.document.service';
-import { IDidCommToEncryptData } from 'lacpass-key-manager';
+import { IDidCommToEncryptData } from 'lacchain-key-manager';
 import { BadRequestError, InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
 import {

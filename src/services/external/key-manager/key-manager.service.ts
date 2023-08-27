@@ -17,7 +17,7 @@ import {
   ISignPlainMessageByAddress,
   ISecp256k1SignatureMessageResponse,
   Secp256k1GenericSignerService
-} from 'lacpass-key-manager';
+} from 'lacchain-key-manager';
 
 @Service()
 export class KeyManagerService {
@@ -38,13 +38,13 @@ export class KeyManagerService {
       this.didCommEncrypt = this.didCommEncryptByLib;
       this.secpSignPlainMessage = this.secpSignPlainMessageByLib;
 
-      const S = require('lacpass-key-manager').DidJwtDbService;
+      const S = require('lacchain-key-manager').DidJwtDbService;
       this.didJwtService = new S();
 
-      const T = require('lacpass-key-manager').DidCommDbService;
+      const T = require('lacchain-key-manager').DidCommDbService;
       this.didCommEncryptService = new T();
 
-      const U = require('lacpass-key-manager').Secp256k1GenericSignerServiceDb;
+      const U = require('lacchain-key-manager').Secp256k1GenericSignerServiceDb;
       this.secp256k1GenericSignerService = new U();
     } else {
       this.log.info('Configuring key manager as external service connection');
