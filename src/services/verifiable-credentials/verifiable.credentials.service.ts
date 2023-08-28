@@ -6,7 +6,7 @@ import {
   resolveChainOfTrustAddress,
   resolvePublicDirectoryAddress
 } from 'lacchain-trust';
-import { INewJwkAttribute } from 'lacchain-identity';
+import { INewJwkAttribute, EcJwk } from 'lacchain-identity';
 import {
   ICredential,
   IDDCCCredential,
@@ -54,6 +54,7 @@ export class VerifiableCredentialService {
   private readonly domain: string;
   log = log4TSProvider.getLogger('VerifiableCreddentialsService');
   private secureRelayService: SecureRelayService;
+  private readonly didDocumentService: DidDocumentService;
   private authPublicKeys: Map<string, Uint8Array> = new Map<
     string,
     Uint8Array
@@ -73,6 +74,7 @@ export class VerifiableCredentialService {
     this.didServiceLac1 = new DidServiceLac1();
     this.keyManager = new KeyManagerService();
     this.domain = this.encode();
+    this.didDocumentService = new DidDocumentService();
   }
   async transformAndSend(ddccToVc: IDDCCToVC): Promise<any> {
     const foundDocumentReference = ddccToVc.bundle.entry.find(
@@ -200,7 +202,7 @@ export class VerifiableCredentialService {
       return keyExchangePublicKey;
     }
     const keyExchangeAlgorithmSearchKeyword = 'X25519KeyAgreementKey2019';
-    const didDoc = await this.secureRelayService.resolver.resolve(did);
+    const didDoc = await this.didDocumentService.resolver.resolve(did);
     const foundkeyExchangePublicKey = DidDocumentService.findKeyAgreement(
       didDoc,
       keyExchangeAlgorithmSearchKeyword
@@ -238,24 +240,51 @@ export class VerifiableCredentialService {
       return assertionPublicKey;
     }
     const assertionRelationshipSearchKeyword = 'JsonWebKey2020';
-    let didDoc = await this.secureRelayService.resolver.resolve(did);
-    let foundAssertionPublicKey =
-      DidDocumentService.findPublicKeyFromJwkAssertionKey(
+    let didDoc = await this.didDocumentService.resolver.resolve(did);
+    const foundAssertionPublicKeys =
+      DidDocumentService.filterSecp256k1PublicKeysFromJwkAssertionKeys(
         didDoc,
         assertionRelationshipSearchKeyword,
-        type
+        'secp256k1'
       );
-    // because method is jsonWeKey2020, the expected format is to be 'json'
-    if (foundAssertionPublicKey) {
-      const hexPubKey = Buffer.from(
-        foundAssertionPublicKey.publicKeyBuffer
-      ).toString('hex');
-      const pk = {
-        hexPubKey,
-        keyId: foundAssertionPublicKey.id
-      };
-      this.assertionPublicKeys.set(did, pk);
-      return pk;
+    if (foundAssertionPublicKeys) {
+      for (const assertionPublicKey of foundAssertionPublicKeys) {
+        // TODO: generalize find algorithm to fit with any kind of key.
+        // and apply to all methods
+        const hexPubKey =
+          '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
+        const messageRequest: ISignPlainMessageByAddress = {
+          address: ethers.computeAddress(hexPubKey),
+          messageHash:
+            '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
+        };
+        try {
+          await this.keyManager.secpSignPlainMessage(messageRequest);
+        } catch (e: any) {
+          // TODO:check in "DEPENDENT SERVICE" way
+          if (e && e.message === 'Key not found') {
+            console.log('error was', e.message);
+            this.log.info(
+              'secp256 private key related to',
+              hexPubKey,
+              ' assertion key was not found. Ignoring this key ...'
+            );
+            continue;
+          }
+          this.log.info(
+            'Unexpected error encountered from key manager, error was',
+            e
+          );
+          throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
+        }
+        this.log.info('Selecting Assertion Public Key', hexPubKey);
+        const pk = {
+          hexPubKey,
+          keyId: assertionPublicKey.id
+        };
+        this.assertionPublicKeys.set(did, pk);
+        return pk;
+      }
     }
 
     const validDays = 365;
@@ -270,14 +299,24 @@ export class VerifiableCredentialService {
       jwkType: type
     };
 
-    await this.didServiceLac1.addNewJwkAttribute(attribute);
-    didDoc = await this.secureRelayService.resolver.resolve(did);
-    foundAssertionPublicKey =
-      DidDocumentService.findPublicKeyFromJwkAssertionKey(
+    const response = await this.didServiceLac1.addNewJwkAttribute(attribute);
+    const newAssertionKey = response.jwk as EcJwk;
+    const newAssertionKeyHex =
+      '0x' + Buffer.from(newAssertionKey.x, 'base64url').toString('hex');
+    didDoc = await this.didDocumentService.resolver.resolve(did);
+    // this method is partial since it is working with secp256k1 keys
+    const foundAssertionPublicKey =
+      DidDocumentService.filterSecp256k1PublicKeysFromJwkAssertionKeys(
         didDoc,
         assertionRelationshipSearchKeyword,
-        type
-      );
+        'secp256k1'
+      )?.find(el => {
+        const hexPubKey = '0x' + el.publicKeyBuffer.toString('hex');
+        return (
+          ethers.computeAddress(hexPubKey) ===
+          ethers.computeAddress(newAssertionKeyHex)
+        );
+      });
     if (foundAssertionPublicKey) {
       const hexPubKey = Buffer.from(
         foundAssertionPublicKey.publicKeyBuffer
@@ -307,7 +346,7 @@ export class VerifiableCredentialService {
     // retrieve auth key from didDocument
     // TODO:esecp256k1vk As Wallet
     const authAlgorithmKeywork = 'EcdsaSecp256k1RecoveryMethod2020';
-    const didDoc = await this.secureRelayService.resolver.resolve(did);
+    const didDoc = await this.didDocumentService.resolver.resolve(did);
     authPubKey = DidDocumentService.findAuthenticationKey(
       didDoc,
       authAlgorithmKeywork

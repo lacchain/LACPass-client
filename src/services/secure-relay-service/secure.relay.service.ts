@@ -6,14 +6,12 @@ import { IDidCommToEncryptData } from 'lacchain-key-manager';
 import { BadRequestError, InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
 import {
-  DID_RESOLVER_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_SEND,
   SECURE_RELAY_SERVICE_DID,
   log4TSProvider
 } from '../../config';
 import fetch from 'node-fetch';
-import { DidResolver } from '../external/did-lac/did.resolver';
 
 const JWT_ENCODING_ALGORITHM = 'ES256K';
 const DID_DOC_KEY_AGREEMENT_KEYWORD = 'X25519KeyAgreementKey2019';
@@ -21,15 +19,15 @@ const DID_DOC_KEY_AGREEMENT_KEYWORD = 'X25519KeyAgreementKey2019';
 @Service()
 export class SecureRelayService {
   log = log4TSProvider.getLogger('SecureRelayService');
-  public readonly resolver: DidResolver;
   private keyManager: KeyManagerService;
+  private readonly didDocumentService: DidDocumentService;
   private keyExchangePublicKeys: Map<string, string> = new Map<
     string,
     string
   >();
   constructor() {
-    this.resolver = new DidResolver(DID_RESOLVER_URL);
     this.keyManager = new KeyManagerService();
+    this.didDocumentService = new DidDocumentService();
   }
   async sendData(
     subDid: string,
@@ -47,7 +45,9 @@ export class SecureRelayService {
       signerAddress: authAddress
     };
     const didJwt = await this.keyManager.createDidJwt(didJwtParams);
-    const recipientDidDoc = await this.resolver.resolve(recipientDid);
+    const recipientDidDoc = await this.didDocumentService.resolver.resolve(
+      recipientDid
+    );
     const recipientPublicKeyBuffer = DidDocumentService.findKeyAgreement(
       recipientDidDoc,
       DID_DOC_KEY_AGREEMENT_KEYWORD
@@ -103,7 +103,7 @@ export class SecureRelayService {
     if (keyExchangePublicKey) {
       return keyExchangePublicKey;
     }
-    const didDoc = await this.resolver.resolve(did);
+    const didDoc = await this.didDocumentService.resolver.resolve(did);
     const foundkeyExchangePublicKey = DidDocumentService.findKeyAgreement(
       didDoc,
       DID_DOC_KEY_AGREEMENT_KEYWORD
