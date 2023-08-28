@@ -1,4 +1,99 @@
 # !/bin/bash
+########### Create a Self Signed Certificate ###########
+function createRSASelfSignedCertificate() {
+    echo
+    echo "*********Starting RSA Self Signed Certificate creation process **********"
+    echo
+    # SCA
+    mkdir -p certs/SCA
+    if [[ $(ls certs/SCA | wc -l) > 0 ]]; then
+        while true; do
+            echo "Certificates found on certs/SCA, do you want to override these? (Y/N):  "
+            echo -n "> "
+            read continue
+            if [[ ("$continue" != "y") && ("$continue" != "yes") && ("$continue" != "Y") && ("$continue" != "YES") ]]; then
+                echo "exiting ..."
+                return
+            else
+                echo "Ok, lets start creating a new Self Signed Certificate"
+                break
+            fi
+        done
+    fi
+    create=false
+    while true; do
+        echo "Enter country code for your Signed Certificate; example: PE ...(see more codes on: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)"
+        # echo "press enter to skip this step"
+        echo -n "> "
+        read country
+        sleep 0.1
+
+        echo "Enter State; example: LMA ... (see more state codes on: https://en.wikipedia.org/wiki/ISO_3166-2:US)"
+        echo "press enter to skip this step"
+        echo -n "> "
+        read state
+        sleep 0.1
+
+        echo "Enter your organization name; example: Ministry Of Health Of Peru"
+        echo -n "> "
+        read organizationName
+        sleep 0.1
+
+        echo "Enter a common name; example: Peru_MoH"
+        echo "press enter to skip this step"
+        echo -n "> "
+        read commonName
+        sleep 0.1
+
+        echo
+        echo "You specified: "
+        echo "Country: '$country'; State: '$state', Organization: '$organizationName', Common Name: '$commonName'"
+
+        echo "Please keep in mind that if you didn't specify a valid Country code you will probably get an error"
+        echo
+        echo "Please confirm to continue (Y/N): "
+        echo
+        echo -n "> "
+        read continue
+        echo
+        if [[ ("$continue" != "y") && ("$continue" != "yes") && ("$continue" != "Y") && ("$continue" != "YES") ]]; then
+            echo "Do you want to change the values (Y/N): "
+            echo
+            echo -n "> "
+            read change
+            echo
+            if [[ ("$change" != "y") && ("$change" != "yes") && ("$change" != "Y") && ("$change" != "YES") ]]; then
+                echo "Cancelling X509 Self Signed Certificate creation"
+                break
+            else
+                echo "No problem ... Let's enter the values again..."
+            fi
+        else
+            echo "Proceeding to create Self Signed Certificate"
+            create=true
+            break
+        fi
+    done
+
+    if [[ "$create" == false ]]; then
+        return
+    fi
+
+    # echo $state
+    openssl genrsa -out "certs/SCA/SCA.key" 4096
+    openssl req -x509 -new -nodes -key "certs/SCA/SCA.key" -subj "/C=$country/ST=$state/O=$organizationName/CN=$commonName" -sha512 -days 1440 -out "certs/SCA/SCA.crt"
+
+    # Request CSR
+    mkdir -p certs/DSC
+    openssl genrsa -out "certs/DSC/DSC.key" 2048
+    openssl req -new -sha512 -key "certs/DSC/DSC.key" -subj "/C=$country/ST=$state/O=$organizationName/CN=$commonName" -out "certs/DSC/DSC.csr"
+
+    # Sign
+    openssl x509 -req -in "certs/DSC/DSC.csr" -CA "certs/SCA/SCA.crt" -CAkey "certs/SCA/SCA.key" -CAcreateserial -extensions v3_req -extfile "openssl.cnf" -out "certs/DSC/DSC.crt" -days 500 -sha512
+
+    echo Certificates were created successfully inside folder "'./certs'"
+}
+
 ######################### DID ##########################
 function createDid() {
     create_did_url="$api_url"/api/v1/did/lac1
@@ -24,6 +119,7 @@ function createDidAndSaveToFile() {
     if [ -f "did.txt" ]; then
         echo "A did.txt file already exists, do you want to overwrite it? (y/n)"
         echo
+        echo -n "> "
         read isToBeOverridden
         echo
         if [[ ("$isToBeOverridden" != "y") && ("$isToBeOverridden" != "yes") && ("$isToBeOverridden" != "Y") && ("$isToBeOverridden" != "YES") ]]; then
@@ -44,8 +140,9 @@ function addX509Certificate() {
     echo
     echo "*********Starting X509/DID association process**********"
     echo
-    echo "Please enter the path to the x509 Signing Certificate, must be something like: ../certs/DSC/DSC.crt " #todo save path to consume later
+    echo "Please enter the path to the x509 Signing Certificate, must be something like: ./certs/DSC/DSC.crt " #todo save path to consume later
     echo
+    echo -n "> "
     read path_to_crt
     echo
     if [ -f $path_to_crt ]; then
@@ -58,6 +155,8 @@ function addX509Certificate() {
             relation=asse
             data="{\"did\":\"$did\", \"relation\":\"$relation\"}"
             curl -X POST ${add_pem_certificate_url} -H "accept: application/json" -F x509Cert=@$path_to_crt -F data="$data"
+            echo
+            echo "done!, X509 certificate was successfully associated to did"
             echo
         else
             echo "Could not find any did at ./did.txt ..."
@@ -74,8 +173,9 @@ function revokex59Certificate() {
     echo
     echo "*********Starting X509/DID disassociation process**********"
     echo
-    echo "Please enter the path to the x509 Signing Certificate, must be something like: ../certs/DSC/DSC.crt"
+    echo "Please enter the path to the x509 Signing Certificate, must be something like: ./certs/DSC/DSC.crt"
     echo
+    echo -n "> "
     read path_to_crt
     echo
     if [ -f $path_to_crt ]; then
@@ -87,6 +187,7 @@ function revokex59Certificate() {
             compromised=false
             echo "Enter backward revocation days, must be a zero or positive number"
             echo
+            echo -n "> "
             read backwardRevocationDays
             echo
             echo Starting disassociation process ...
@@ -95,6 +196,8 @@ function revokex59Certificate() {
             relation=asse
             data='{"did":'"\"$did\""', "relation":'"\"$relation\""', "compromised":'$compromised', "backwardRevocationDays":'$backwardRevocationDays'}'
             curl -X 'DELETE' ${disassociate_pem_certificate_url} -H 'accept: application/json' -F x509Cert=@$path_to_crt -F data="$data"
+            echo
+            echo "done!, X509 certificate was removed from did"
             echo
         else
             echo "Could not find any did at ./did.txt ..."
@@ -121,9 +224,11 @@ function createManager() {
 
         echo "Please enter the amount of days in which the manager will be considered valid"
         echo
+        echo -n "> "
         read validDays
         echo
         #validDays=100 # Number of days in which the manager to be created will be considered valid
+        echo "creating a new manager for $validDays days"
         add_manager_url=$manager_url
         curl -X 'POST' \
             ${add_manager_url} \
@@ -133,7 +238,8 @@ function createManager() {
         "did": '\"$did\"',
         "validDays": '$validDays'
         }'
-
+        echo
+        echo "done!,new manager was created and will be valid for $validDays days."
         echo
     else
         echo "Could not find any did at ./did.txt ..."
@@ -169,32 +275,51 @@ function getManager() {
 ############## CLI ##########
 
 function actions() {
-    echo ACTIONS
-    echo type "CD" to create a new did
-    echo type "AX" to associate a did to an x509 certificate
-    echo type "DX" to disassociate a did from an x509 certificate
-    echo type "CM" to create a new chain of trust manager
-    echo type "GCM" to get the curent manager
-    echo
-    read action
-    echo
-    case "${action}" in
-    "CD")
-        createDidAndSaveToFile
-        ;;
-    "AX")
-        addX509Certificate
-        ;;
-    "DX")
-        revokex59Certificate
-        ;;
-    "CM")
-        createManager
-        ;;
-    "GCM")
-        getManager
-        ;;
-    esac
+    while true; do
+        sleep 0.5
+        echo
+        echo "************* CLI MAIN MENU *************"
+        echo type "'SSC'" to create a 'Self Signed Certificate'
+        echo type "'CD'" to create a new did
+        echo type "'AX'" to associate a did to an x509 certificate
+        echo type "'DX'" to disassociate a did from an x509 certificate
+        echo type "'CM'" to create a new chain of trust manager
+        echo type "'GCM'" to get the curent manager
+        echo type "'exit'" to exit the program
+        echo
+        echo -n "> "
+        read action
+        echo
+        case "${action}" in
+        "SSC")
+            createRSASelfSignedCertificate
+            ;;
+        "CD")
+            createDidAndSaveToFile
+            ;;
+        "AX")
+            addX509Certificate
+            ;;
+        "DX")
+            revokex59Certificate
+            ;;
+        "CM")
+            createManager
+            ;;
+        "GCM")
+            getManager
+            ;;
+        "exit")
+            echo "Exiting ... bye"
+            echo
+            break
+            ;;
+        *)
+            echo "Please type a valid option"
+            echo
+            ;;
+        esac
+    done
 }
 
 echo
@@ -203,7 +328,7 @@ echo "****************** Wecome to the LACPass-Client Helper ******************"
 echo "*************************************************************************"
 echo
 echo "Please enter the API URL to connect to, make sure it is something like http://localhost:3010"
-echo
+echo -n "> "
 read api_url
 echo
 if [[ $api_url == *"http"* ]]; then

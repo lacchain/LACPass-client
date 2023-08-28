@@ -3,8 +3,12 @@ import {
   DidLacService,
   DidType,
   didLacAttributes,
-  IEthereumTransactionResponse
-} from 'lacpass-identity';
+  IEthereumTransactionResponse,
+  INewAttribute,
+  INewECAttributeCreationResponse,
+  INewJwkAttribute,
+  INewJwkAttributeCreationResponse
+} from 'lacchain-identity';
 import {
   DID_LAC1_CONTROLLER,
   DID_LAC1_DECODE_DID,
@@ -13,7 +17,10 @@ import {
   log4TSProvider,
   DID_LAC1,
   DID_LAC1_ADD_JWK_ATTR_FROM_X509_CERT,
-  DID_LAC1_REVOKE_JWK_ATTR_FROM_X509_CERT
+  DID_LAC1_REVOKE_JWK_ATTR_FROM_X509_CERT,
+  DID_LAC1_ADD_NEW_SECP256K1_ATTRIBUTE,
+  DID_LAC1_ADD_NEW_ED25519_ATTRIBUTE,
+  DID_LAC1_ADD_NEW_JWK_ATTRIBUTE
 } from '../../../config';
 import { InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../../constants/errorMessages';
@@ -27,7 +34,7 @@ export class DidServiceLac1 {
   public getController: (did: string) => Promise<any>;
   public decodeDid: (did: string) => Promise<didLacAttributes>;
 
-  // attribute
+  // jwk attribute
   public rawAddAttributeFromX509Certificate: (
     formData: any,
     x509Cert: Express.Multer.File
@@ -36,6 +43,21 @@ export class DidServiceLac1 {
     formData: any,
     x509Cert: Express.Multer.File
   ) => Promise<IEthereumTransactionResponse>;
+
+  // secp256k1 attribute
+  public addNewSecp256k1Attribute: (
+    newSecp256k1Attribute: INewAttribute
+  ) => Promise<INewECAttributeCreationResponse>;
+
+  // x25519 key attribute
+  public addNewEd25519Attribute: (
+    newEd25519Attribute: INewAttribute
+  ) => Promise<INewECAttributeCreationResponse>;
+
+  // Jwk attribute
+  public addNewJwkAttribute: (
+    attribute: INewJwkAttribute
+  ) => Promise<INewJwkAttributeCreationResponse>;
 
   // TODO: Chain of trust
 
@@ -55,7 +77,13 @@ export class DidServiceLac1 {
       this.rawRevokeAttributeFromX509Certificate =
         this.rawRevokeAttributeFromX509CertificateByLib;
 
-      const S = require('lacpass-identity').DidLac1Service;
+      this.addNewSecp256k1Attribute = this.addNewSecp256k1AttributeByLib;
+
+      this.addNewEd25519Attribute = this.addNewEd25519AttributeByLib;
+
+      this.addNewJwkAttribute = this.addNewJwkAttributeByLib;
+
+      const S = require('lacchain-identity').DidLac1Service;
       this.didService = new S();
     } else {
       this.log.info('Configuring external service connection');
@@ -68,6 +96,13 @@ export class DidServiceLac1 {
         this.rawAddAttributeFromX509CertificateByExternalService;
       this.rawRevokeAttributeFromX509Certificate =
         this.rawRevokeAttributeFromX509CertificateByExternalService;
+
+      this.addNewSecp256k1Attribute =
+        this.addNewSecp256k1AttributeByExternalService;
+
+      this.addNewEd25519Attribute =
+        this.addNewEd25519AttributeByExternalService;
+      this.addNewJwkAttribute = this.addNewJwkAttributeByExternalService;
     }
   }
   private async createDidByLib(): Promise<DidType> {
@@ -195,5 +230,90 @@ export class DidServiceLac1 {
       throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
     }
     return (await result.json()) as IEthereumTransactionResponse;
+  }
+
+  private async addNewSecp256k1AttributeByLib(
+    newAttribute: INewAttribute
+  ): Promise<INewECAttributeCreationResponse> {
+    return (await this.didService?.addNewSecp256k1Attribute(
+      newAttribute
+    )) as INewECAttributeCreationResponse;
+  }
+
+  private async addNewEd25519AttributeByLib(
+    newAttribute: INewAttribute
+  ): Promise<INewECAttributeCreationResponse> {
+    return (await this.didService?.addNewEd25519Attribute(
+      newAttribute
+    )) as INewECAttributeCreationResponse;
+  }
+
+  private async addNewSecp256k1AttributeByExternalService(
+    newAttribute: INewAttribute
+  ): Promise<INewECAttributeCreationResponse> {
+    const result = await fetch(
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_ADD_NEW_SECP256K1_ATTRIBUTE}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAttribute)
+      }
+    );
+    console.log('status', result.status);
+    if (result.status !== 200) {
+      console.log(await result.text());
+      throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
+    }
+    return (await result.json()) as INewECAttributeCreationResponse;
+  }
+
+  private async addNewEd25519AttributeByExternalService(
+    newAttribute: INewAttribute
+  ): Promise<INewECAttributeCreationResponse> {
+    const result = await fetch(
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_ADD_NEW_ED25519_ATTRIBUTE}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAttribute)
+      }
+    );
+    console.log('status', result.status);
+    if (result.status !== 200) {
+      console.log(await result.text());
+      throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
+    }
+    return (await result.json()) as INewECAttributeCreationResponse;
+  }
+
+  private async addNewJwkAttributeByLib(
+    attribute: INewJwkAttribute
+  ): Promise<INewJwkAttributeCreationResponse> {
+    return await this.didService?.addNewJwkAttribute(attribute);
+  }
+
+  private async addNewJwkAttributeByExternalService(
+    newAttribute: INewJwkAttribute
+  ): Promise<INewJwkAttributeCreationResponse> {
+    const result = await fetch(
+      `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_ADD_NEW_JWK_ATTRIBUTE}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newAttribute)
+      }
+    );
+    console.log('status', result.status);
+    if (result.status !== 200) {
+      console.log(await result.text());
+      throw new InternalServerError(ErrorsMessages.ADD_ATTRIBUTE_ERROR);
+    }
+    return (await result.json()) as INewJwkAttributeCreationResponse;
   }
 }

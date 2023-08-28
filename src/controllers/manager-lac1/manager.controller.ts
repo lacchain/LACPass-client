@@ -8,7 +8,7 @@ import {
 } from 'routing-controllers';
 import { Service } from 'typedi';
 import { ErrorsMessages } from '../../constants/errorMessages';
-import { NewManagerDto, IManager } from 'lacpass-chain-of-trust';
+import { NewManagerDto, IManager } from 'lacchain-trust';
 import { Manager } from '@services/external/chain-of-trust/manager';
 
 @JsonController('/manager')

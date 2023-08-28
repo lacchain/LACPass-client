@@ -1,4 +1,4 @@
-// import { INewAccountIdAttribute } from 'lacpass-identity';
+// import { INewAccountIdAttribute } from 'lacchain-identity';
 import {
   CHAIN_OF_TRUST_BASE_URL,
   COT_CREATE_MANAGER,
@@ -9,7 +9,7 @@ import {
 import { Service } from 'typedi';
 import { InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../../constants/errorMessages';
-import { IManagerService, IManager, INewManager } from 'lacpass-chain-of-trust';
+import { IManagerService, IManager, INewManager } from 'lacchain-trust';
 
 @Service()
 export class Manager {
@@ -26,7 +26,7 @@ export class Manager {
       this.getManager = this.getManagerByLib;
 
       // setting imported chain of trust manager service
-      const S = require('lacpass-chain-of-trust').ManagerService;
+      const S = require('lacchain-trust').ManagerService;
       this.manager = new S();
     } else {
       this.log.info('Configuring external service connection');

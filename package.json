@@ -1,6 +1,6 @@
 {
   "name": "lacpass-client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Rest api for lacpass Client",
   "license": "MIT",
   "scripts": {
@@ -63,10 +63,12 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git",
     "aws-sdk": "^2.1116.0",
     "base-x": "^4.0.0",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.0",
+    "canonicalize": "^2.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.12.2",
     "class-validator-jsonschema": "^2.2.0",
@@ -79,7 +81,7 @@
     "form-data": "^4.0.0",
     "helmet": "^5.0.2",
     "jsonwebtoken": "^9.0.0",
-    "lacpass-chain-of-trust": "^0.0.11",
+    "lacchain-trust": "^0.0.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.4",
     "nodemailer": "^6.7.3",

@@ -24,7 +24,34 @@ export enum ErrorsMessages {
   DECODE_DID_CONTROLLER_ERROR = 'Error while decoding did',
   ADD_ATTRIBUTE_ERROR = 'Error while associating attribute to did',
   MANAGER_CREATION_ERROR = 'Error while creating manager',
-  MANAGER_GET_ERROR = 'Error while requesting manager details'
+  MANAGER_GET_ERROR = 'Error while requesting manager details',
+  RESOLVE_DID_ERROR = 'Unable to resolve did',
+  // eslint-disable-next-line max-len
+  CREATE_DID_JWT_ERROR = 'An internal server error occurred while trying to create a new did-jwt',
+  INVALID_DID = 'Invalid did params',
+  DIDCOMM_ENCRYPT = 'An error occurred while trying to encrypt with didcomm protocol',
+  KEY_AGREEMENT_NOT_FOUND = 'Key agreement was not found',
+  // eslint-disable-next-line max-len
+  SECURE_RELAY_MESSAGE_DELIVERY_ERROR = 'An internal server error occurred while trying to send message through secure relay message deliverer',
+  DDCC_DATA_ERROR = 'No ddcc data was found in the incoming request',
+  VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
+  COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
+  VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
+  PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
+  CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
+  VM_NOT_FOUND = 'Verification method was not found',
+  BRAND_CODE_NOT_FOUND = 'No displayable name found for the specified brand',
+  DOCUMENT_REFERENCE_NOT_FOUND = 'Document reference not found in the incoming request',
+  // eslint-disable-next-line max-len
+  DOCUMENT_REFERENCE_CONTENT_NOT_FOUND = '"content" was not found inside Document reference',
+  INVALID_DOCUMENT_REFERENCE = 'The specified document reference is invalid',
+  IMAGE_NOT_FOUND = 'No image with contentType "image/png" was found',
+  INVALID_CONTENT_ATTRIBUTE = 'The specified content attribute is invalid',
+  INVALID_ATTACHMENT_ATTRIBUTE = 'The specified attachment attribute is invalid',
+  DDCCCOREDATASET_NOT_FOUND = 'No ddcCoredataSet was found',
+  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed',
+  // eslint-disable-next-line max-len
+  DDCCCOREDATASET_ATTRIBUTE_NOT_FOUND = 'ddccCoreDataSet attribute inside parsed data'
 }
 
 export const Errors = {
