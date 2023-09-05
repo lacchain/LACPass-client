@@ -5790,10 +5790,10 @@ koa@^2.8.2:
     type-is "^1.6.16"
     vary "^1.1.2"
 
-lacchain-identity@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/lacchain-identity/-/lacchain-identity-0.0.1.tgz#58b6a67e9515c604bbbf19a814f269af8c90dae5"
-  integrity sha512-nLWhzNH4PBzgWkkzOhIKb7+WlrsPRMGUdDK5/qnrZaiXCeajdvJxvKWKEBJH8ZZzc9mEYICGWxlnZASSFq9yqw==
+lacchain-identity@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/lacchain-identity/-/lacchain-identity-0.0.2.tgz#f67082667b4793a3edd67a83c68c5c11902fb73a"
+  integrity sha512-Th72Swzc6vub3IeM9+u0w+scc98h7Xcqxp2QLK1Xa7pXuRHMWmmRJPFM1pAnj6qPj4l+pzUKUDoAevML2W+fZg==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5812,7 +5812,7 @@ lacchain-identity@^0.0.1:
     helmet "^5.0.2"
     json-canonicalize "^1.0.6"
     jsonwebtoken "^9.0.0"
-    lacchain-key-manager "^0.0.1"
+    lacchain-key-manager "^0.0.2"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
@@ -5832,10 +5832,10 @@ lacchain-identity@^0.0.1:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacchain-key-manager@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/lacchain-key-manager/-/lacchain-key-manager-0.0.1.tgz#52c253fc90566478a6709dfd7e2c6f02a9b3bcb7"
-  integrity sha512-a4cU4cCmBy7TxjoNiiRnYukDv1kr0oq/i3zA0kMCHTGbeWV64H002aBrhaRVhFqCeRkAC1udq+VRrxaEmTHwSQ==
+lacchain-key-manager@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/lacchain-key-manager/-/lacchain-key-manager-0.0.2.tgz#e9996ad66bdbf52e4db3148390a09dff630413b7"
+  integrity sha512-8qDeQUYHgZylcPQDkKc3N6eprVUlp0vCH+4GsH+iznZ6HlWhhdghMgEgYwSq1jlmM9L/jBos+m7m1iWBDWoQbg==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     DIDComm-js "git+https://github.com/decentralized-identity/DIDComm-js.git"
@@ -5873,10 +5873,10 @@ lacchain-key-manager@^0.0.1:
     typescript-logging "^2.1.0"
     typescript-logging-log4ts-style "^2.1.0"
 
-lacchain-trust@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/lacchain-trust/-/lacchain-trust-0.0.1.tgz#97ab820d7654a83a684e0dc8a4d90dc27218a5f8"
-  integrity sha512-MfzYSfLd+brVCeI1j9MvswaFB4tTfcPs9w0wFabrFM9xfhF6vR8vdrxr45I4Z+U8V5G6hNOC3Ak05Ob5RdN7uw==
+lacchain-trust@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/lacchain-trust/-/lacchain-trust-0.0.2.tgz#85eac993af82f195704b9d0fa8e34dc2b7d4ca6c"
+  integrity sha512-krSxYyaDLcShRS2nIS91Pnuf6PW4PGN81qeBp5X3N1HKRQD1EQ7L2aQtp1U3slQ05dkUpoIo4SVhi/oLUUaxwA==
   dependencies:
     "@lacchain/gas-model-provider" "^1.0.1"
     aws-sdk "^2.1116.0"
@@ -5895,7 +5895,7 @@ lacchain-trust@^0.0.1:
     express-rate-limit "^6.3.0"
     helmet "^5.0.2"
     jsonwebtoken "^9.0.0"
-    lacchain-identity "^0.0.1"
+    lacchain-identity "^0.0.2"
     morgan "^1.10.0"
     multer "^1.4.4"
     nodemailer "^6.7.3"
