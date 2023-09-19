@@ -102,6 +102,13 @@ docker-compose -f docker-compose.yml --env-file .env.prod build
 docker-compose -f docker-compose.yml --env-file .env.prod up
 ```
 
+**Note**
+You can also run it with a preconfigured image:
+
+```
+docker-compose -f docker-compose-image.yml --env-file .env.prod up
+```
+
 ### Deployment with Docker (only for production)
 
 The following commands will `build and run` a Docker image ready for production and size-optimized.

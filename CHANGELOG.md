@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.5
+
+* Added version information on start up.
+* Added docker-compose with configuration pointing to the [latest lacpass-client docker image](https://hub.docker.com/r/eumb602/lacpass-client/tags)
+* Updated open-protest RPC URL connection.
+
 ## 0.0.3
 
 ### Additions and Improvements

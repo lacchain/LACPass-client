@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import { isAddress } from 'ethers';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
+import { version } from 'package.json';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
@@ -21,6 +22,8 @@ export const log4TSProvider = Log4TSProvider.createProvider(
 );
 
 const log = log4TSProvider.getLogger('lacpass-client-config');
+
+log.info('LACPASS-CLIENT-VERSION', version);
 
 export const getChainId = (): string => {
   if (!process.env.CHAIN_ID) {
