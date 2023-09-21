@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.0.6
+
+* add additional codes for "brand" field used to transform DDCCCoreDataSeet to Verifiable Credential.
 ## 0.0.5
 
 * Added version information on start up.
