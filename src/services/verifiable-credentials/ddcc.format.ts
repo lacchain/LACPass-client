@@ -16,11 +16,21 @@ export class Issuer {
   identifier!: Identifier;
 }
 
+export class Period {
+  @IsString()
+  start!: string;
+  @IsString()
+  end!: string;
+}
+
 export class DDCCCertificate {
-  // period .. omitted
+  @IsOptional()
+  @Type(() => Period)
+  period!: Period;
   @Type(() => Identifier)
   hcid!: Identifier;
-  // version .. omitted
+  @IsString()
+  version!: string;
   @Type(() => Issuer)
   issuer!: Issuer;
 }

@@ -171,7 +171,6 @@ export class VerifiableCredentialService {
     imageContent: IContent,
     qrDescription: string
   ): Promise<any> {
-    // TODO: send credentials
     const ddccCredential = await this.assembleDDCCCredential(
       ddccCoreDataSet,
       imageContent.attachment,
@@ -182,8 +181,7 @@ export class VerifiableCredentialService {
       ddccCredential,
       issuerDid
     )) as IDDCCVerifiableCredential;
-    // TODO: send ddcc credential through secure relay server
-    const message = JSON.stringify(ddccVerifiableCredential); // TODO: stringify VC
+    const message = JSON.stringify(ddccVerifiableCredential);
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
@@ -528,11 +526,46 @@ export class VerifiableCredentialService {
   ): Promise<IDDCCCredential> {
     const ddccCredential = await this.new();
     const ddccData = data.ddccData;
-    // Vaccination event
+    // Vaccination certificate
     const vaccination = data.ddccData.vaccination;
     ddccCredential.issuer = data.issuerDid;
-    ddccCredential.name = ddccData.certificate.issuer.identifier.value;
-    ddccCredential.identifier = ddccData.certificate.hcid.value;
+    const certificate = ddccData.certificate;
+    if (
+      certificate &&
+      certificate.issuer &&
+      certificate.issuer.identifier &&
+      certificate.issuer.identifier.value
+    ) {
+      ddccCredential.name = ddccData.certificate.issuer.identifier.value;
+    }
+
+    if (certificate && certificate.period && certificate.period.start) {
+      try {
+        ddccCredential.issuanceDate = new Date(
+          certificate.period.start
+        ).toJSON();
+      } catch (e) {
+        this.log.info(
+          'invalid certificate start date, defaulting to current date'
+        );
+      }
+    }
+
+    if (certificate && certificate.period && certificate.period.end) {
+      try {
+        ddccCredential.expirationDate = new Date(
+          certificate.period.end
+        ).toJSON();
+      } catch (e) {
+        this.log.info('invalid certificate end date, leaving it blank');
+      }
+    }
+
+    if (ddccData.certificate.hcid.value) {
+      ddccCredential.identifier = ddccData.certificate.hcid.value;
+    }
+
+    // Vaccination event
     ddccCredential.credentialSubject.batchNumber = vaccination.lot;
     ddccCredential.credentialSubject.countryOfVaccination =
       vaccination.country.code;
