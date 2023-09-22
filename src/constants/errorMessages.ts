@@ -37,6 +37,7 @@ export enum ErrorsMessages {
   VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
   COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
   VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
+  BRAND_MISSING_ATTRIBUTE = 'No brand attribute was found',
   PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
   CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
   VM_NOT_FOUND = 'Verification method was not found',
@@ -49,9 +50,7 @@ export enum ErrorsMessages {
   INVALID_CONTENT_ATTRIBUTE = 'The specified content attribute is invalid',
   INVALID_ATTACHMENT_ATTRIBUTE = 'The specified attachment attribute is invalid',
   DDCCCOREDATASET_NOT_FOUND = 'No ddcCoredataSet was found',
-  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed',
-  // eslint-disable-next-line max-len
-  DDCCCOREDATASET_ATTRIBUTE_NOT_FOUND = 'ddccCoreDataSet attribute inside parsed data'
+  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed'
 }
 
 export const Errors = {

@@ -26,10 +26,10 @@ import { DidDocumentService } from '@services/did/did.document.service';
 import { BadRequestError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
 import {
-  Country,
+  CodeSystem,
   DDCCFormatValidator,
   DDCCCoreDataSet,
-  Vaccine
+  Identifier
 } from './ddcc.format';
 import { validateOrReject } from 'class-validator';
 import canonicalize from 'canonicalize';
@@ -43,6 +43,7 @@ import {
   IDocumentReference
 } from './iddcc.to.vc';
 import { Attachment, Content, DocumentReference } from '@dto/DDCCToVC';
+import { DISEASE_LIST } from '@constants/disease.code.mapper';
 
 @Service()
 export class VerifiableCredentialService {
@@ -384,17 +385,38 @@ export class VerifiableCredentialService {
     if (!country) {
       throw new BadRequestError(ErrorsMessages.COUNTRY_MISSING_ATTRIBUTE);
     }
-    await this._validateDDCCCoreRequiredDataCountry(country);
+    await this._validateDDCCCoreCodeSystemAttribute(country);
     const vaccine = vaccinationData.vaccine;
     if (!vaccine) {
       throw new BadRequestError(ErrorsMessages.VACCINE_MISSING_ATTRIBUTE);
     }
-    await this._validateDDCCCoreRequiredDataVaccine(vaccine);
+    await this._validateDDCCCoreCodeSystemAttribute(vaccine);
+    const brand = vaccinationData.brand;
+    if (!brand) {
+      throw new BadRequestError(ErrorsMessages.BRAND_MISSING_ATTRIBUTE);
+    }
+    if (vaccinationData.maholder) {
+      await this._validateDDCCCoreCodeSystemAttribute(vaccinationData.maholder);
+    }
+    if (vaccinationData.disease) {
+      await this._validateDDCCCoreCodeSystemAttribute(vaccinationData.disease);
+    }
+    if (vaccinationData.practitioner) {
+      await this._validateDDCCCoreIdentifierAttribute(
+        vaccinationData.practitioner
+      );
+    }
     const ddcc = new DDCCFormatValidator();
-    ddcc.birthDate = ddccData.birthDate;
-    ddcc.identifier = ddccData.identifier;
+    if (ddcc.birthDate) {
+      ddcc.birthDate = ddccData.birthDate;
+    }
+    if (ddcc.identifier) {
+      ddcc.identifier = ddccData.identifier;
+    }
     ddcc.name = ddccData.name;
-    ddcc.sex = ddccData.sex;
+    if (ddcc.sex) {
+      ddcc.sex = ddccData.sex;
+    }
     ddcc.vaccination = ddccData.vaccination;
     try {
       await validateOrReject(ddcc);
@@ -403,9 +425,9 @@ export class VerifiableCredentialService {
     }
   }
 
-  async _validateDDCCCoreRequiredDataCountry(country: Country) {
-    const c = new Country();
-    c.code = country.code;
+  async _validateDDCCCoreCodeSystemAttribute(attribute: CodeSystem) {
+    const c = new CodeSystem();
+    c.code = attribute.code;
     try {
       await validateOrReject(c);
     } catch (err: any) {
@@ -413,11 +435,11 @@ export class VerifiableCredentialService {
     }
   }
 
-  async _validateDDCCCoreRequiredDataVaccine(vaccine: Vaccine) {
-    const v = new Vaccine();
-    v.code = vaccine.code;
+  async _validateDDCCCoreIdentifierAttribute(attribute: Identifier) {
+    const c = new Identifier();
+    c.value = attribute.value;
     try {
-      await validateOrReject(v);
+      await validateOrReject(c);
     } catch (err: any) {
       throw new BadRequestError(err);
     }
@@ -442,9 +464,8 @@ export class VerifiableCredentialService {
     return {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
-        'https://w3id.org/vaccination/v1',
         // eslint-disable-next-line max-len
-        'https://credentials-library.lacchain.net/credentials/health/vaccination/v2'
+        'https://credentials-library.lacchain.net/credentials/health/vaccination/v3'
       ],
       // eslint-disable-next-line quote-props
       id: randomUUID().toString(),
@@ -464,14 +485,12 @@ export class VerifiableCredentialService {
         batchNumber: '',
         countryOfVaccination: '',
         dateOfVaccination: '',
-        administeringCentre: '',
         order: '',
         recipient: {
-          type: ['VaccineRecipient', 'VaccineRecipientExtension1'],
+          type: 'VaccineRecipient',
           id: '',
           name: '',
           birthDate: '',
-          identifier: '',
           gender: ''
         },
         vaccine: {
@@ -485,7 +504,7 @@ export class VerifiableCredentialService {
           alternateName: 'QRCode',
           description:
             // eslint-disable-next-line max-len
-            'QR code containing the cryptographic information that certifies the validity of the embedded health related content',
+            'QR code containing the DDCCCoreDatSet plus signature',
           encodingFormat: '',
           contentUrl: ''
         }
@@ -509,6 +528,7 @@ export class VerifiableCredentialService {
   ): Promise<IDDCCCredential> {
     const ddccCredential = await this.new();
     const ddccData = data.ddccData;
+    // Vaccination event
     const vaccination = data.ddccData.vaccination;
     ddccCredential.issuer = data.issuerDid;
     ddccCredential.name = ddccData.certificate.issuer.identifier.value;
@@ -517,23 +537,62 @@ export class VerifiableCredentialService {
     ddccCredential.credentialSubject.countryOfVaccination =
       vaccination.country.code;
     ddccCredential.credentialSubject.dateOfVaccination = vaccination.date;
-    ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
+    if (vaccination.centre) {
+      ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
+    }
+    if (vaccination.nextDose) {
+      ddccCredential.credentialSubject.nextVaccinationDate =
+        vaccination.nextDose;
+    }
+    if (vaccination.totalDoses) {
+      ddccCredential.credentialSubject.totalDoses = vaccination.totalDoses;
+    }
+    if (vaccination.validFrom) {
+      ddccCredential.credentialSubject.nextVaccinationDate =
+        vaccination.validFrom;
+    }
     ddccCredential.credentialSubject.order = vaccination.dose.toString();
+    // recipient
     ddccCredential.credentialSubject.recipient.id = data.receiverDid;
     ddccCredential.credentialSubject.recipient.name = ddccData.name;
-    ddccCredential.credentialSubject.recipient.birthDate = ddccData.birthDate;
-    ddccCredential.credentialSubject.recipient.identifier = ddccData.identifier;
-    ddccCredential.credentialSubject.recipient.gender = ddccData.sex;
+    if (ddccData.birthDate) {
+      ddccCredential.credentialSubject.recipient.birthDate = ddccData.birthDate;
+    }
+    if (ddccData.identifier) {
+      ddccCredential.credentialSubject.recipient.identifier =
+        ddccData.identifier;
+    }
+    if (ddccData.sex) {
+      ddccCredential.credentialSubject.recipient.gender = ddccData.sex;
+    }
+    // vaccine
     ddccCredential.credentialSubject.vaccine.atcCode =
       ddccData.vaccination.vaccine.code;
     const medicinalProductName = MEDICINAL_PRODUCT_NAMES.get(
       ddccData.vaccination.brand.code
     );
-    if (!medicinalProductName) {
-      throw new BadRequestError(ErrorsMessages.BRAND_CODE_NOT_FOUND);
-    }
     ddccCredential.credentialSubject.vaccine.medicinalProductName =
-      medicinalProductName;
+      medicinalProductName
+        ? medicinalProductName
+        : ddccData.vaccination.brand.code;
+    if (ddccData.vaccination.maholder && ddccData.vaccination.maholder.code) {
+      ddccCredential.credentialSubject.vaccine.marketingAuthorizationHolder =
+        ddccData.vaccination.maholder.code;
+    }
+    if (ddccData.vaccination.disease && ddccData.vaccination.disease.code) {
+      const mappedDisease = DISEASE_LIST.get(ddccData.vaccination.disease.code);
+      ddccCredential.credentialSubject.vaccine.disease = mappedDisease
+        ? mappedDisease
+        : ddccData.vaccination.disease.code;
+    }
+    if (
+      ddccData.vaccination.practitioner &&
+      ddccData.vaccination.practitioner.value
+    ) {
+      ddccCredential.credentialSubject.healthProfessional =
+        ddccData.vaccination.practitioner.value;
+    }
+    // Image
     ddccCredential.credentialSubject.image.encodingFormat =
       attachment.contentType;
     ddccCredential.credentialSubject.image.contentUrl = attachment.data;

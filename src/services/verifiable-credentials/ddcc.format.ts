@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsDefined, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  IsDefined,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested
+} from 'class-validator';
 
 export class Identifier {
   @IsString()
@@ -19,35 +25,48 @@ export class DDCCCertificate {
   issuer!: Issuer;
 }
 
-export class Vaccine {
-  @IsString()
-  code!: string;
-}
-export class Country {
-  @IsString()
-  code!: string;
-}
-
-export class Brand {
+export class CodeSystem {
   @IsString()
   code!: string;
 }
 
 export class Vaccination {
-  @Type(() => Vaccine)
-  vaccine!: Vaccine;
+  @Type(() => CodeSystem)
+  vaccine!: CodeSystem;
   @IsString()
   date!: string;
   @IsNumber()
   dose!: number;
-  @Type(() => Country)
-  country!: Country;
+  @Type(() => CodeSystem)
+  country!: CodeSystem;
   @IsString()
+  @IsOptional()
   centre!: string;
-  @Type(() => Brand)
-  brand!: Brand;
+  @IsString()
+  @IsOptional()
+  nextDose!: string;
+  @Type(() => CodeSystem)
+  brand!: CodeSystem;
   @IsString()
   lot!: string;
+  @IsOptional()
+  @Type(() => CodeSystem)
+  @ValidateNested()
+  maholder!: CodeSystem;
+  @IsOptional()
+  @Type(() => CodeSystem)
+  @ValidateNested()
+  disease!: CodeSystem;
+  @IsOptional()
+  @IsString()
+  totalDoses!: string;
+  @IsOptional()
+  @IsString()
+  validFrom!: string;
+  @IsOptional()
+  @Type(() => Identifier)
+  @ValidateNested()
+  practitioner!: Identifier;
 }
 
 export class DDCCFormatValidator {
@@ -60,10 +79,13 @@ export class DDCCFormatValidator {
   @IsString()
   name!: string;
   @IsString()
+  @IsOptional()
   birthDate!: string;
   @IsString()
+  @IsOptional()
   identifier!: string;
   @IsString()
+  @IsOptional()
   sex!: string;
 }
 
