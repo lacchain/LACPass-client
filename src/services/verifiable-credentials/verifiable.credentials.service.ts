@@ -16,7 +16,6 @@ import {
 } from 'src/interfaces/verifiable-credential/ddcc.credential';
 import crypto from 'crypto';
 import { Service } from 'typedi';
-import { ethers, keccak256 } from 'ethers';
 import {
   CHAIN_ID,
   log4TSProvider,
@@ -44,6 +43,9 @@ import {
 } from './iddcc.to.vc';
 import { Attachment, Content, DocumentReference } from '@dto/DDCCToVC';
 import { DISEASE_LIST } from '@constants/disease.code.mapper';
+import { computeAddress, keccak256 } from 'ethers/lib/utils';
+import { VerificationRegistry } from './verification.registry';
+import { IEthereumTransactionResponse } from 'src/interfaces/ethereum/transaction';
 
 @Service()
 export class VerifiableCredentialService {
@@ -70,12 +72,14 @@ export class VerifiableCredentialService {
   > = new Map<string, { hexPubKey: string; keyId: string }>();
   private didServiceLac1: DidServiceLac1;
   private keyManager: KeyManagerService;
+  private verificationRegistryService: VerificationRegistry;
   constructor() {
     this.secureRelayService = new SecureRelayService();
     this.didServiceLac1 = new DidServiceLac1();
     this.keyManager = new KeyManagerService();
     this.domain = this.encode();
     this.didDocumentService = new DidDocumentService();
+    this.verificationRegistryService = new VerificationRegistry();
   }
   async transformAndSend(ddccToVc: IDDCCToVC): Promise<any> {
     const foundDocumentReference = ddccToVc.bundle.entry.find(
@@ -171,6 +175,7 @@ export class VerifiableCredentialService {
     imageContent: IContent,
     qrDescription: string
   ): Promise<any> {
+    // ): Promise<{ deliveryId: string; txHash: string | null }> {
     const ddccCredential = await this.assembleDDCCCredential(
       ddccCoreDataSet,
       imageContent.attachment,
@@ -185,12 +190,58 @@ export class VerifiableCredentialService {
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
-    return this.secureRelayService.sendData(
+    // proof of existence
+    let issueTxResponse: IEthereumTransactionResponse | null = null;
+    // TODO: add environment varible to configure PoE behavior
+    try {
+      issueTxResponse = await this.addProofOfExistence(
+        issuerDid,
+        ddccCredential
+      );
+    } catch (e) {
+      this.log.info('Error adding proof of existence', e);
+    }
+    const sentData = await this.secureRelayService.sendData(
       issuerDid,
       authAddress,
       keyExchangePublicKey,
       receiverDid,
       message
+    );
+    return {
+      deliveryId: sentData.deliveryId,
+      txHash: issueTxResponse ? issueTxResponse.txHash : null
+    };
+  }
+  /**
+   * Leaves a proof of existence. Resolves the controller of the issuer did and signs
+   * the proof of existence with its associated private key
+   * @param {string} issuerDid
+   * @param {ICredential} credentialData
+   */
+  async addProofOfExistence(
+    issuerDid: string,
+    credentialData: ICredential
+  ): Promise<IEthereumTransactionResponse> {
+    const credentialHash = this.computeCredentialHash(credentialData);
+    let expiration = 0;
+    if (credentialData && credentialData.expirationDate) {
+      const d = new Date(credentialData.expirationDate).getTime();
+      if (d < new Date().getTime()) {
+        this.log.info(
+          // eslint-disable-next-line max-len
+          'Credential is expired, setting onchain expiration date to zero => never expires'
+        );
+      } else {
+        expiration = Math.floor(
+          new Date(credentialData.expirationDate).getTime() / 1000
+        );
+      }
+    }
+    return this.verificationRegistryService.verifyAndIssueSigned(
+      issuerDid,
+      credentialHash,
+      expiration
     );
   }
   async getOrSetOrCreateKeyExchangePublicKeyFromDid(
@@ -253,7 +304,7 @@ export class VerifiableCredentialService {
         const hexPubKey =
           '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
         const messageRequest: ISignPlainMessageByAddress = {
-          address: ethers.computeAddress(hexPubKey),
+          address: computeAddress(hexPubKey),
           messageHash:
             '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
         };
@@ -311,10 +362,7 @@ export class VerifiableCredentialService {
         'secp256k1'
       )?.find(el => {
         const hexPubKey = '0x' + el.publicKeyBuffer.toString('hex');
-        return (
-          ethers.computeAddress(hexPubKey) ===
-          ethers.computeAddress(newAssertionKeyHex)
-        );
+        return computeAddress(hexPubKey) === computeAddress(newAssertionKeyHex);
       });
     if (foundAssertionPublicKey) {
       const hexPubKey = Buffer.from(
@@ -334,7 +382,7 @@ export class VerifiableCredentialService {
     const buffAuthPublicKey = Buffer.from(
       await this.getOrSetAuthPublicKey(issuerDid)
     );
-    return ethers.computeAddress('0x' + buffAuthPublicKey.toString('hex'));
+    return computeAddress('0x' + buffAuthPublicKey.toString('hex'));
   }
 
   async getOrSetAuthPublicKey(did: string): Promise<Uint8Array> {
@@ -653,17 +701,22 @@ export class VerifiableCredentialService {
     return { ...credential, proof };
   }
 
-  async getIType1ProofAssertionMethodTemplate(
-    credentialData: ICredential,
-    issuerDid: string
-  ): Promise<IType1Proof> {
+  computeCredentialHash(credentialData: ICredential) {
     const credentialDataString = canonicalize(credentialData);
     if (!credentialDataString) {
       throw new BadRequestError(ErrorsMessages.CANONICALIZE_ERROR);
     }
-    const credentialHash =
+    return (
       '0x' +
-      crypto.createHash('sha256').update(credentialDataString).digest('hex');
+      crypto.createHash('sha256').update(credentialDataString).digest('hex')
+    );
+  }
+
+  async getIType1ProofAssertionMethodTemplate(
+    credentialData: ICredential,
+    issuerDid: string
+  ): Promise<IType1Proof> {
+    const credentialHash = this.computeCredentialHash(credentialData);
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'secp256k1'
@@ -672,7 +725,7 @@ export class VerifiableCredentialService {
       ? assertionKey.hexPubKey
       : '0x' + assertionKey.hexPubKey;
     const messageRequest: ISignPlainMessageByAddress = {
-      address: ethers.computeAddress(hexPubKey),
+      address: computeAddress(hexPubKey),
       messageHash: credentialHash
     };
     const proofValueResponse = await this.keyManager.secpSignPlainMessage(

@@ -12,6 +12,7 @@ import {
   log4TSProvider
 } from '../../config';
 import fetch from 'node-fetch';
+import { IDelivery } from 'src/interfaces/verifiable-credential/delivery';
 
 const JWT_ENCODING_ALGORITHM = 'ES256K';
 const DID_DOC_KEY_AGREEMENT_KEYWORD = 'X25519KeyAgreementKey2019';
@@ -36,7 +37,7 @@ export class SecureRelayService {
     recipientDid: string,
     message: string,
     exp = Math.floor(Date.now() / 1000 + 3600 * 24) // one day
-  ): Promise<any> {
+  ): Promise<IDelivery> {
     const didJwtParams: IDidJwt = {
       subDid,
       aud: SECURE_RELAY_SERVICE_DID,
@@ -129,7 +130,7 @@ export class SecureRelayService {
   private async sendDataThroughSecureRelayMessageDeliverer(
     token: string,
     message: any
-  ): Promise<{ deliveryId: string }> {
+  ): Promise<IDelivery> {
     const result = await fetch(
       `${SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL}${SECURE_RELAY_MESSAGE_DELIVERER_SEND}`,
       {

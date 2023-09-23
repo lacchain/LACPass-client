@@ -17,6 +17,8 @@ export enum ErrorsMessages {
   PASSWORD_ERROR = 'Property password must be longer than or equal to 6 characters',
   // HTTP STANDARD MESSAGES
   INTERNAL_SERVER_ERROR = 'Internal Server Error',
+  // eslint-disable-next-line max-len
+  INDEPENDENT_MISCONFIGURATION_ERROR = 'Service is expected to be configured as independent service but critical variables are missing',
   BAD_REQUEST_ERROR = 'Bad request error',
   USER_ALREADY_EXISTS = 'A user with this email is already registered',
   CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did',
@@ -50,7 +52,13 @@ export enum ErrorsMessages {
   INVALID_CONTENT_ATTRIBUTE = 'The specified content attribute is invalid',
   INVALID_ATTACHMENT_ATTRIBUTE = 'The specified attachment attribute is invalid',
   DDCCCOREDATASET_NOT_FOUND = 'No ddcCoredataSet was found',
-  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed'
+  DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed',
+  // eslint-disable-next-line max-len
+  LACCHAIN_CONTRACT_TRANSACTION_ERROR = 'There was an error, there may be an issue with the params you are sending',
+  // eslint-disable-next-line max-len
+  CHAIN_ID_FROM_DID_NOT_SUPPORTED = 'The chain id extracted from the passed DID is not supported',
+  // eslint-disable-next-line max-len
+  SIGN_TRANSACTION_ERROR = 'An error occurred while trying to sign transaction against external service'
 }
 
 export const Errors = {

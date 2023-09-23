@@ -2,10 +2,10 @@
 import { VERIFICATION_REGISTRY_CONTRACT_ADDRESSES } from '@constants/verification.registry';
 import { randomUUID } from 'crypto';
 import { config } from 'dotenv';
-import { isAddress } from 'ethers';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 import { version } from 'package.json';
+import { isAddress } from 'ethers/lib/utils';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
@@ -150,6 +150,7 @@ export const {
   KEY_MANAGER_DID_JWT,
   KEY_MANAGER_DID_COMM_ENCRYPT,
   KEY_MANAGER_SECP256K1_PLAIN_MESSAGE_SIGN,
+  KEY_MANAGER_SECP256K1_SIGN_LACCHAIN_TRANSACTION,
   SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_SEND
 } = process.env;
