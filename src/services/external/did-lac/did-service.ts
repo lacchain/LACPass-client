@@ -26,12 +26,13 @@ import { InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../../constants/errorMessages';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
+import { IDidController } from 'src/interfaces/lacchain/misc';
 
 @Service()
 export class DidServiceLac1 {
   // did
   public createDid: () => Promise<DidType>;
-  public getController: (did: string) => Promise<any>;
+  public getController: (did: string) => Promise<IDidController>;
   public decodeDid: (did: string) => Promise<didLacAttributes>;
 
   // jwk attribute
@@ -123,10 +124,12 @@ export class DidServiceLac1 {
     return (await result.json()) as DidType;
   }
 
-  private async getControllerByLib(did: string): Promise<any> {
-    return (await this.didService?.getController(did)) as any;
+  private async getControllerByLib(did: string): Promise<IDidController> {
+    return (await this.didService?.getController(did)) as IDidController;
   }
-  private async getControllerByExternalService(did: string): Promise<any> {
+  private async getControllerByExternalService(
+    did: string
+  ): Promise<IDidController> {
     const result = await fetch(
       `${IDENTITY_MANAGER_BASE_URL}${DID_LAC1_CONTROLLER}/${did}`,
       {
@@ -141,7 +144,7 @@ export class DidServiceLac1 {
       console.log(await result.text());
       throw new InternalServerError(ErrorsMessages.GET_DID_CONTROLLER_ERROR);
     }
-    return (await result.json()) as any;
+    return (await result.json()) as IDidController;
   }
 
   private async decodeDidByLib(did: string): Promise<didLacAttributes> {
@@ -170,6 +173,11 @@ export class DidServiceLac1 {
     formData: any,
     x509Cert: Express.Multer.File
   ): Promise<IEthereumTransactionResponse> {
+    if (!this.didService) {
+      throw new InternalServerError(
+        ErrorsMessages.INDEPENDENT_MISCONFIGURATION_ERROR
+      );
+    }
     return await this.didService?.rawAddAttributeFromX509Certificate(
       formData,
       x509Cert
@@ -203,6 +211,11 @@ export class DidServiceLac1 {
     formData: any,
     x509Cert: Express.Multer.File
   ): Promise<IEthereumTransactionResponse> {
+    if (!this.didService) {
+      throw new InternalServerError(
+        ErrorsMessages.INDEPENDENT_MISCONFIGURATION_ERROR
+      );
+    }
     return this.didService?.rawRevokeAttributeFromX509Certificate(
       formData,
       x509Cert

@@ -16,20 +16,20 @@ import {
 } from 'src/interfaces/verifiable-credential/ddcc.credential';
 import crypto from 'crypto';
 import { Service } from 'typedi';
-import { ethers, keccak256 } from 'ethers';
 import {
   CHAIN_ID,
+  PROOF_OF_EXISTENCE_MODE,
   log4TSProvider,
   resolveVerificationRegistryContractAddress
 } from '../../config';
 import { DidDocumentService } from '@services/did/did.document.service';
-import { BadRequestError } from 'routing-controllers';
+import { BadRequestError, InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
 import {
-  Country,
+  CodeSystem,
   DDCCFormatValidator,
   DDCCCoreDataSet,
-  Vaccine
+  Identifier
 } from './ddcc.format';
 import { validateOrReject } from 'class-validator';
 import canonicalize from 'canonicalize';
@@ -43,6 +43,11 @@ import {
   IDocumentReference
 } from './iddcc.to.vc';
 import { Attachment, Content, DocumentReference } from '@dto/DDCCToVC';
+import { DISEASE_LIST } from '@constants/disease.code.mapper';
+import { computeAddress, keccak256 } from 'ethers/lib/utils';
+import { VerificationRegistry } from './verification.registry';
+import { IEthereumTransactionResponse } from 'src/interfaces/ethereum/transaction';
+import { ProofOfExistenceMode } from '@constants/poe';
 
 @Service()
 export class VerifiableCredentialService {
@@ -69,12 +74,15 @@ export class VerifiableCredentialService {
   > = new Map<string, { hexPubKey: string; keyId: string }>();
   private didServiceLac1: DidServiceLac1;
   private keyManager: KeyManagerService;
+  private verificationRegistryService: VerificationRegistry;
+  private proofOfExistenceMode = PROOF_OF_EXISTENCE_MODE;
   constructor() {
     this.secureRelayService = new SecureRelayService();
     this.didServiceLac1 = new DidServiceLac1();
     this.keyManager = new KeyManagerService();
     this.domain = this.encode();
     this.didDocumentService = new DidDocumentService();
+    this.verificationRegistryService = new VerificationRegistry();
   }
   async transformAndSend(ddccToVc: IDDCCToVC): Promise<any> {
     const foundDocumentReference = ddccToVc.bundle.entry.find(
@@ -169,8 +177,7 @@ export class VerifiableCredentialService {
     ddccCoreDataSet: DDCCCoreDataSet,
     imageContent: IContent,
     qrDescription: string
-  ): Promise<any> {
-    // TODO: send credentials
+  ): Promise<{ deliveryId: string; txHash: string | null }> {
     const ddccCredential = await this.assembleDDCCCredential(
       ddccCoreDataSet,
       imageContent.attachment,
@@ -181,17 +188,70 @@ export class VerifiableCredentialService {
       ddccCredential,
       issuerDid
     )) as IDDCCVerifiableCredential;
-    // TODO: send ddcc credential through secure relay server
-    const message = JSON.stringify(ddccVerifiableCredential); // TODO: stringify VC
+    const message = JSON.stringify(ddccVerifiableCredential);
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
     const keyExchangePublicKey =
       await this.getOrSetOrCreateKeyExchangePublicKeyFromDid(issuerDid);
-    return this.secureRelayService.sendData(
+    // proof of existence
+    let issueTxResponse: IEthereumTransactionResponse | null = null;
+    // TODO: add environment varible to configure PoE behavior
+    if (this.proofOfExistenceMode !== ProofOfExistenceMode.DISABLED) {
+      try {
+        issueTxResponse = await this.addProofOfExistence(
+          issuerDid,
+          ddccCredential
+        );
+      } catch (e) {
+        this.log.info('Error adding proof of existence', e);
+        if (this.proofOfExistenceMode === ProofOfExistenceMode.STRICT) {
+          throw new InternalServerError(
+            ErrorsMessages.PROOF_OF_EXISTENCE_FAILED
+          );
+        }
+      }
+    }
+
+    const sentData = await this.secureRelayService.sendData(
       issuerDid,
       authAddress,
       keyExchangePublicKey,
       receiverDid,
       message
+    );
+    return {
+      deliveryId: sentData.deliveryId,
+      txHash: issueTxResponse ? issueTxResponse.txHash : null
+    };
+  }
+  /**
+   * Leaves a proof of existence. Resolves the controller of the issuer did and signs
+   * the proof of existence with its associated private key
+   * @param {string} issuerDid
+   * @param {ICredential} credentialData
+   */
+  async addProofOfExistence(
+    issuerDid: string,
+    credentialData: ICredential
+  ): Promise<IEthereumTransactionResponse> {
+    const credentialHash = this.computeCredentialHash(credentialData);
+    let expiration = 0;
+    if (credentialData && credentialData.expirationDate) {
+      const d = new Date(credentialData.expirationDate).getTime();
+      if (d < new Date().getTime()) {
+        this.log.info(
+          // eslint-disable-next-line max-len
+          'Credential is expired, setting onchain expiration date to zero => never expires'
+        );
+      } else {
+        expiration = Math.floor(
+          new Date(credentialData.expirationDate).getTime() / 1000
+        );
+      }
+    }
+    return this.verificationRegistryService.verifyAndIssueSigned(
+      issuerDid,
+      credentialHash,
+      expiration
     );
   }
   async getOrSetOrCreateKeyExchangePublicKeyFromDid(
@@ -254,7 +314,7 @@ export class VerifiableCredentialService {
         const hexPubKey =
           '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
         const messageRequest: ISignPlainMessageByAddress = {
-          address: ethers.computeAddress(hexPubKey),
+          address: computeAddress(hexPubKey),
           messageHash:
             '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
         };
@@ -312,10 +372,7 @@ export class VerifiableCredentialService {
         'secp256k1'
       )?.find(el => {
         const hexPubKey = '0x' + el.publicKeyBuffer.toString('hex');
-        return (
-          ethers.computeAddress(hexPubKey) ===
-          ethers.computeAddress(newAssertionKeyHex)
-        );
+        return computeAddress(hexPubKey) === computeAddress(newAssertionKeyHex);
       });
     if (foundAssertionPublicKey) {
       const hexPubKey = Buffer.from(
@@ -335,7 +392,7 @@ export class VerifiableCredentialService {
     const buffAuthPublicKey = Buffer.from(
       await this.getOrSetAuthPublicKey(issuerDid)
     );
-    return ethers.computeAddress('0x' + buffAuthPublicKey.toString('hex'));
+    return computeAddress('0x' + buffAuthPublicKey.toString('hex'));
   }
 
   async getOrSetAuthPublicKey(did: string): Promise<Uint8Array> {
@@ -384,17 +441,38 @@ export class VerifiableCredentialService {
     if (!country) {
       throw new BadRequestError(ErrorsMessages.COUNTRY_MISSING_ATTRIBUTE);
     }
-    await this._validateDDCCCoreRequiredDataCountry(country);
+    await this._validateDDCCCoreCodeSystemAttribute(country);
     const vaccine = vaccinationData.vaccine;
     if (!vaccine) {
       throw new BadRequestError(ErrorsMessages.VACCINE_MISSING_ATTRIBUTE);
     }
-    await this._validateDDCCCoreRequiredDataVaccine(vaccine);
+    await this._validateDDCCCoreCodeSystemAttribute(vaccine);
+    const brand = vaccinationData.brand;
+    if (!brand) {
+      throw new BadRequestError(ErrorsMessages.BRAND_MISSING_ATTRIBUTE);
+    }
+    if (vaccinationData.maholder) {
+      await this._validateDDCCCoreCodeSystemAttribute(vaccinationData.maholder);
+    }
+    if (vaccinationData.disease) {
+      await this._validateDDCCCoreCodeSystemAttribute(vaccinationData.disease);
+    }
+    if (vaccinationData.practitioner) {
+      await this._validateDDCCCoreIdentifierAttribute(
+        vaccinationData.practitioner
+      );
+    }
     const ddcc = new DDCCFormatValidator();
-    ddcc.birthDate = ddccData.birthDate;
-    ddcc.identifier = ddccData.identifier;
+    if (ddcc.birthDate) {
+      ddcc.birthDate = ddccData.birthDate;
+    }
+    if (ddcc.identifier) {
+      ddcc.identifier = ddccData.identifier;
+    }
     ddcc.name = ddccData.name;
-    ddcc.sex = ddccData.sex;
+    if (ddcc.sex) {
+      ddcc.sex = ddccData.sex;
+    }
     ddcc.vaccination = ddccData.vaccination;
     try {
       await validateOrReject(ddcc);
@@ -403,9 +481,9 @@ export class VerifiableCredentialService {
     }
   }
 
-  async _validateDDCCCoreRequiredDataCountry(country: Country) {
-    const c = new Country();
-    c.code = country.code;
+  async _validateDDCCCoreCodeSystemAttribute(attribute: CodeSystem) {
+    const c = new CodeSystem();
+    c.code = attribute.code;
     try {
       await validateOrReject(c);
     } catch (err: any) {
@@ -413,11 +491,11 @@ export class VerifiableCredentialService {
     }
   }
 
-  async _validateDDCCCoreRequiredDataVaccine(vaccine: Vaccine) {
-    const v = new Vaccine();
-    v.code = vaccine.code;
+  async _validateDDCCCoreIdentifierAttribute(attribute: Identifier) {
+    const c = new Identifier();
+    c.value = attribute.value;
     try {
-      await validateOrReject(v);
+      await validateOrReject(c);
     } catch (err: any) {
       throw new BadRequestError(err);
     }
@@ -442,9 +520,8 @@ export class VerifiableCredentialService {
     return {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
-        'https://w3id.org/vaccination/v1',
         // eslint-disable-next-line max-len
-        'https://credentials-library.lacchain.net/credentials/health/vaccination/v2'
+        'https://credentials-library.lacchain.net/credentials/health/vaccination/v3'
       ],
       // eslint-disable-next-line quote-props
       id: randomUUID().toString(),
@@ -464,14 +541,12 @@ export class VerifiableCredentialService {
         batchNumber: '',
         countryOfVaccination: '',
         dateOfVaccination: '',
-        administeringCentre: '',
         order: '',
         recipient: {
-          type: ['VaccineRecipient', 'VaccineRecipientExtension1'],
+          type: 'VaccineRecipient',
           id: '',
           name: '',
           birthDate: '',
-          identifier: '',
           gender: ''
         },
         vaccine: {
@@ -485,7 +560,7 @@ export class VerifiableCredentialService {
           alternateName: 'QRCode',
           description:
             // eslint-disable-next-line max-len
-            'QR code containing the cryptographic information that certifies the validity of the embedded health related content',
+            'QR code containing the DDCCCoreDatSet plus signature',
           encodingFormat: '',
           contentUrl: ''
         }
@@ -509,31 +584,106 @@ export class VerifiableCredentialService {
   ): Promise<IDDCCCredential> {
     const ddccCredential = await this.new();
     const ddccData = data.ddccData;
+    // Vaccination certificate
     const vaccination = data.ddccData.vaccination;
     ddccCredential.issuer = data.issuerDid;
-    ddccCredential.name = ddccData.certificate.issuer.identifier.value;
-    ddccCredential.identifier = ddccData.certificate.hcid.value;
+    const certificate = ddccData.certificate;
+    if (
+      certificate &&
+      certificate.issuer &&
+      certificate.issuer.identifier &&
+      certificate.issuer.identifier.value
+    ) {
+      ddccCredential.name = ddccData.certificate.issuer.identifier.value;
+    }
+
+    if (certificate && certificate.period && certificate.period.start) {
+      try {
+        ddccCredential.issuanceDate = new Date(
+          certificate.period.start
+        ).toJSON();
+      } catch (e) {
+        this.log.info(
+          'invalid certificate start date, defaulting to current date'
+        );
+      }
+    }
+
+    if (certificate && certificate.period && certificate.period.end) {
+      try {
+        ddccCredential.expirationDate = new Date(
+          certificate.period.end
+        ).toJSON();
+      } catch (e) {
+        this.log.info('invalid certificate end date, leaving it blank');
+      }
+    }
+
+    if (ddccData.certificate.hcid.value) {
+      ddccCredential.identifier = ddccData.certificate.hcid.value;
+    }
+
+    // Vaccination event
     ddccCredential.credentialSubject.batchNumber = vaccination.lot;
     ddccCredential.credentialSubject.countryOfVaccination =
       vaccination.country.code;
     ddccCredential.credentialSubject.dateOfVaccination = vaccination.date;
-    ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
+    if (vaccination.centre) {
+      ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
+    }
+    if (vaccination.nextDose) {
+      ddccCredential.credentialSubject.nextVaccinationDate =
+        vaccination.nextDose;
+    }
+    if (vaccination.totalDoses) {
+      ddccCredential.credentialSubject.totalDoses = vaccination.totalDoses;
+    }
+    if (vaccination.validFrom) {
+      ddccCredential.credentialSubject.nextVaccinationDate =
+        vaccination.validFrom;
+    }
     ddccCredential.credentialSubject.order = vaccination.dose.toString();
+    // recipient
     ddccCredential.credentialSubject.recipient.id = data.receiverDid;
     ddccCredential.credentialSubject.recipient.name = ddccData.name;
-    ddccCredential.credentialSubject.recipient.birthDate = ddccData.birthDate;
-    ddccCredential.credentialSubject.recipient.identifier = ddccData.identifier;
-    ddccCredential.credentialSubject.recipient.gender = ddccData.sex;
+    if (ddccData.birthDate) {
+      ddccCredential.credentialSubject.recipient.birthDate = ddccData.birthDate;
+    }
+    if (ddccData.identifier) {
+      ddccCredential.credentialSubject.recipient.identifier =
+        ddccData.identifier;
+    }
+    if (ddccData.sex) {
+      ddccCredential.credentialSubject.recipient.gender = ddccData.sex;
+    }
+    // vaccine
     ddccCredential.credentialSubject.vaccine.atcCode =
       ddccData.vaccination.vaccine.code;
     const medicinalProductName = MEDICINAL_PRODUCT_NAMES.get(
       ddccData.vaccination.brand.code
     );
-    if (!medicinalProductName) {
-      throw new BadRequestError(ErrorsMessages.BRAND_CODE_NOT_FOUND);
-    }
     ddccCredential.credentialSubject.vaccine.medicinalProductName =
-      medicinalProductName;
+      medicinalProductName
+        ? medicinalProductName
+        : ddccData.vaccination.brand.code;
+    if (ddccData.vaccination.maholder && ddccData.vaccination.maholder.code) {
+      ddccCredential.credentialSubject.vaccine.marketingAuthorizationHolder =
+        ddccData.vaccination.maholder.code;
+    }
+    if (ddccData.vaccination.disease && ddccData.vaccination.disease.code) {
+      const mappedDisease = DISEASE_LIST.get(ddccData.vaccination.disease.code);
+      ddccCredential.credentialSubject.vaccine.disease = mappedDisease
+        ? mappedDisease
+        : ddccData.vaccination.disease.code;
+    }
+    if (
+      ddccData.vaccination.practitioner &&
+      ddccData.vaccination.practitioner.value
+    ) {
+      ddccCredential.credentialSubject.healthProfessional =
+        ddccData.vaccination.practitioner.value;
+    }
+    // Image
     ddccCredential.credentialSubject.image.encodingFormat =
       attachment.contentType;
     ddccCredential.credentialSubject.image.contentUrl = attachment.data;
@@ -561,17 +711,22 @@ export class VerifiableCredentialService {
     return { ...credential, proof };
   }
 
-  async getIType1ProofAssertionMethodTemplate(
-    credentialData: ICredential,
-    issuerDid: string
-  ): Promise<IType1Proof> {
+  computeCredentialHash(credentialData: ICredential) {
     const credentialDataString = canonicalize(credentialData);
     if (!credentialDataString) {
       throw new BadRequestError(ErrorsMessages.CANONICALIZE_ERROR);
     }
-    const credentialHash =
+    return (
       '0x' +
-      crypto.createHash('sha256').update(credentialDataString).digest('hex');
+      crypto.createHash('sha256').update(credentialDataString).digest('hex')
+    );
+  }
+
+  async getIType1ProofAssertionMethodTemplate(
+    credentialData: ICredential,
+    issuerDid: string
+  ): Promise<IType1Proof> {
+    const credentialHash = this.computeCredentialHash(credentialData);
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'secp256k1'
@@ -580,7 +735,7 @@ export class VerifiableCredentialService {
       ? assertionKey.hexPubKey
       : '0x' + assertionKey.hexPubKey;
     const messageRequest: ISignPlainMessageByAddress = {
-      address: ethers.computeAddress(hexPubKey),
+      address: computeAddress(hexPubKey),
       messageHash: credentialHash
     };
     const proofValueResponse = await this.keyManager.secpSignPlainMessage(

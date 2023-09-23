@@ -2,10 +2,11 @@
 import { VERIFICATION_REGISTRY_CONTRACT_ADDRESSES } from '@constants/verification.registry';
 import { randomUUID } from 'crypto';
 import { config } from 'dotenv';
-import { isAddress } from 'ethers';
 import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 import { version } from 'package.json';
+import { isAddress } from 'ethers/lib/utils';
+import { ProofOfExistenceMode } from '@constants/poe';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
@@ -34,6 +35,29 @@ export const getChainId = (): string => {
 };
 
 export const CHAIN_ID = getChainId();
+
+export const resolveProofOfExistenceMode = () => {
+  const pOEValue = process.env.PROOF_OF_EXISTENCE_MODE;
+  let mode: ProofOfExistenceMode;
+  if (!pOEValue || pOEValue === 'ENABLED_NOT_THROWABLE') {
+    mode = ProofOfExistenceMode.ENABLED_NOT_THROWABLE;
+  } else if (pOEValue === 'STRICT') {
+    mode = ProofOfExistenceMode.STRICT;
+  } else if (pOEValue === 'DISABLED') {
+    mode = ProofOfExistenceMode.DISABLED;
+  } else {
+    log.error(
+      'Invalid option for PROOF_OF_EXISTENCE_MODE environment variable, found',
+      pOEValue,
+      '. Exiting ...'
+    );
+    process.exit(1);
+  }
+  log.info(`Setting Proof Existence Mode to', ${mode} for`, pOEValue);
+  return mode;
+};
+
+export const PROOF_OF_EXISTENCE_MODE = resolveProofOfExistenceMode();
 
 export const resolveVerificationRegistryContractAddress = (
   verificationRegistryContractAddress = process.env
@@ -150,6 +174,7 @@ export const {
   KEY_MANAGER_DID_JWT,
   KEY_MANAGER_DID_COMM_ENCRYPT,
   KEY_MANAGER_SECP256K1_PLAIN_MESSAGE_SIGN,
+  KEY_MANAGER_SECP256K1_SIGN_LACCHAIN_TRANSACTION,
   SECURE_RELAY_MESSAGE_DELIVERER_BASE_URL,
   SECURE_RELAY_MESSAGE_DELIVERER_SEND
 } = process.env;

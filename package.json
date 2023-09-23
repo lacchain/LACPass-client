@@ -1,6 +1,6 @@
 {
   "name": "lacpass-client",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Rest api for lacpass Client",
   "license": "MIT",
   "scripts": {
@@ -74,7 +74,7 @@
     "class-validator-jsonschema": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "ethers": "^6.3.0",
+    "ethers": "^5.6.5",
     "express": "^4.17.3",
     "express-formidable": "^1.2.0",
     "express-rate-limit": "^6.3.0",

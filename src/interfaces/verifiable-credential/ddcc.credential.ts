@@ -16,9 +16,9 @@ export interface VaccineRecipient {
   type: string[] | string;
   id: string;
   name: string;
-  birthDate: string;
-  identifier: string;
-  gender: string;
+  birthDate?: string;
+  identifier?: string;
+  gender?: string;
 }
 
 export interface ImageObject {
@@ -32,8 +32,10 @@ export interface ImageObject {
 
 export interface Vaccine {
   type: string[] | string;
-  atcCode: string;
-  medicinalProductName: string;
+  atcCode: string; // vaccine code
+  medicinalProductName: string; // brand "mapped" code
+  marketingAuthorizationHolder?: string; // maholder code
+  disease?: string; // disease "mapped" code
 }
 
 export interface IDDCCCredentialSubject {
@@ -41,8 +43,12 @@ export interface IDDCCCredentialSubject {
   batchNumber: string;
   countryOfVaccination: string;
   dateOfVaccination: string;
-  administeringCentre: string;
-  order: string;
+  administeringCentre?: string;
+  nextVaccinationDate?: string; // nextDose
+  order: string; // dose
+  totalDoses?: string; // totalDoses
+  validFrom?: string; // validFrom
+  healthProfessional?: string; // healthProfessional
   recipient: VaccineRecipient;
   vaccine: Vaccine;
   image: ImageObject;

@@ -17,6 +17,10 @@ export enum ErrorsMessages {
   PASSWORD_ERROR = 'Property password must be longer than or equal to 6 characters',
   // HTTP STANDARD MESSAGES
   INTERNAL_SERVER_ERROR = 'Internal Server Error',
+  // eslint-disable-next-line max-len
+  INDEPENDENT_MISCONFIGURATION_ERROR = 'Service is expected to be configured as independent service but critical variables are missing',
+  // eslint-disable-next-line max-len
+  PROOF_OF_EXISTENCE_FAILED = 'There was an error while attempting to register a Proof of existence',
   BAD_REQUEST_ERROR = 'Bad request error',
   USER_ALREADY_EXISTS = 'A user with this email is already registered',
   CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did',
@@ -37,6 +41,7 @@ export enum ErrorsMessages {
   VACCINATION_MISSING_ATTRIBUTE = 'No vaccination attribute was found',
   COUNTRY_MISSING_ATTRIBUTE = 'No country attribute was found',
   VACCINE_MISSING_ATTRIBUTE = 'No vaccine attribute was found',
+  BRAND_MISSING_ATTRIBUTE = 'No brand attribute was found',
   PLAIN_MESSAGE_SIGNING_ERROR = 'There was an error while trying to sign plain message',
   CANONICALIZE_ERROR = 'An error occurred while trying to canonicalize message',
   VM_NOT_FOUND = 'Verification method was not found',
@@ -51,7 +56,11 @@ export enum ErrorsMessages {
   DDCCCOREDATASET_NOT_FOUND = 'No ddcCoredataSet was found',
   DDCCCOREDATASET_PARSE_ERROR = 'The specified ddcCoredataSet could not be parsed',
   // eslint-disable-next-line max-len
-  DDCCCOREDATASET_ATTRIBUTE_NOT_FOUND = 'ddccCoreDataSet attribute inside parsed data'
+  LACCHAIN_CONTRACT_TRANSACTION_ERROR = 'There was an error, there may be an issue with the params you are sending',
+  // eslint-disable-next-line max-len
+  CHAIN_ID_FROM_DID_NOT_SUPPORTED = 'The chain id extracted from the passed DID is not supported',
+  // eslint-disable-next-line max-len
+  SIGN_TRANSACTION_ERROR = 'An error occurred while trying to sign transaction against external service'
 }
 
 export const Errors = {

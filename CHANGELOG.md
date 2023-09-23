@@ -1,5 +1,19 @@
 # Changelog
 
+### 0.0.7
+
+* Add PoE for emitted credentials.
+* Add configuration variable `PROOF_OF_EXISTENCE_MODE` to set PoE mode:
+  * DISABLED: Proof of existence is disabled, in the respose the field TxHash is set to null
+  * STRICT: Proof of existence must strictly succeed otherwise the request throws and in the respose the field TxHash is set to null, otherwise that field will have a valid transaction hash
+  * ENABLED_NOT_THROWABLE: If Proof of existence fails the request does not throw but in the respose the field TxHash is set to null, otherwise that field will have a valid transaction hash
+* Updates verification registry to '0xF17Da8641771c0196318515b662b0C00132C4163' which by default uses 
+didRegistry: 0x43dE0954a2c83A415d82b9F31705B969b5856003
+* Considers certificate period fields (if defined) as the verifiable credential issuance/expiration dates
+* Add additional fields
+* validates mandatory and optional DDCCCoreDataSet fields
+* Downgrades ethers to version 5.6.5 since it was needed to use GasModel Library.
+
 ### 0.0.6
 
 * add additional codes for "brand" field used to transform DDCCCoreDataSeet to Verifiable Credential.
