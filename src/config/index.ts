@@ -6,6 +6,7 @@ import { LogLevel } from 'typescript-logging';
 import { Log4TSProvider } from 'typescript-logging-log4ts-style';
 import { version } from 'package.json';
 import { isAddress } from 'ethers/lib/utils';
+import { ProofOfExistenceMode } from '@constants/poe';
 
 config({ path: `.env.${process.env.ENV || 'dev'}` });
 
@@ -34,6 +35,29 @@ export const getChainId = (): string => {
 };
 
 export const CHAIN_ID = getChainId();
+
+export const resolveProofOfExistenceMode = () => {
+  const pOEValue = process.env.PROOF_OF_EXISTENCE_MODE;
+  let mode: ProofOfExistenceMode;
+  if (!pOEValue || pOEValue === 'ENABLED_NOT_THROWABLE') {
+    mode = ProofOfExistenceMode.ENABLED_NOT_THROWABLE;
+  } else if (pOEValue === 'STRICT') {
+    mode = ProofOfExistenceMode.STRICT;
+  } else if (pOEValue === 'DISABLED') {
+    mode = ProofOfExistenceMode.DISABLED;
+  } else {
+    log.error(
+      'Invalid option for PROOF_OF_EXISTENCE_MODE environment variable, found',
+      pOEValue,
+      '. Exiting ...'
+    );
+    process.exit(1);
+  }
+  log.info(`Setting Proof Existence Mode to', ${mode} for`, pOEValue);
+  return mode;
+};
+
+export const PROOF_OF_EXISTENCE_MODE = resolveProofOfExistenceMode();
 
 export const resolveVerificationRegistryContractAddress = (
   verificationRegistryContractAddress = process.env

@@ -18,11 +18,12 @@ import crypto from 'crypto';
 import { Service } from 'typedi';
 import {
   CHAIN_ID,
+  PROOF_OF_EXISTENCE_MODE,
   log4TSProvider,
   resolveVerificationRegistryContractAddress
 } from '../../config';
 import { DidDocumentService } from '@services/did/did.document.service';
-import { BadRequestError } from 'routing-controllers';
+import { BadRequestError, InternalServerError } from 'routing-controllers';
 import { ErrorsMessages } from '../../constants/errorMessages';
 import {
   CodeSystem,
@@ -46,6 +47,7 @@ import { DISEASE_LIST } from '@constants/disease.code.mapper';
 import { computeAddress, keccak256 } from 'ethers/lib/utils';
 import { VerificationRegistry } from './verification.registry';
 import { IEthereumTransactionResponse } from 'src/interfaces/ethereum/transaction';
+import { ProofOfExistenceMode } from '@constants/poe';
 
 @Service()
 export class VerifiableCredentialService {
@@ -73,6 +75,7 @@ export class VerifiableCredentialService {
   private didServiceLac1: DidServiceLac1;
   private keyManager: KeyManagerService;
   private verificationRegistryService: VerificationRegistry;
+  private proofOfExistenceMode = PROOF_OF_EXISTENCE_MODE;
   constructor() {
     this.secureRelayService = new SecureRelayService();
     this.didServiceLac1 = new DidServiceLac1();
@@ -193,14 +196,22 @@ export class VerifiableCredentialService {
     // proof of existence
     let issueTxResponse: IEthereumTransactionResponse | null = null;
     // TODO: add environment varible to configure PoE behavior
-    try {
-      issueTxResponse = await this.addProofOfExistence(
-        issuerDid,
-        ddccCredential
-      );
-    } catch (e) {
-      this.log.info('Error adding proof of existence', e);
+    if (this.proofOfExistenceMode !== ProofOfExistenceMode.DISABLED) {
+      try {
+        issueTxResponse = await this.addProofOfExistence(
+          issuerDid,
+          ddccCredential
+        );
+      } catch (e) {
+        this.log.info('Error adding proof of existence', e);
+        if (this.proofOfExistenceMode === ProofOfExistenceMode.STRICT) {
+          throw new InternalServerError(
+            ErrorsMessages.PROOF_OF_EXISTENCE_FAILED
+          );
+        }
+      }
     }
+
     const sentData = await this.secureRelayService.sendData(
       issuerDid,
       authAddress,

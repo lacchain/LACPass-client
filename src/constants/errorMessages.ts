@@ -19,6 +19,8 @@ export enum ErrorsMessages {
   INTERNAL_SERVER_ERROR = 'Internal Server Error',
   // eslint-disable-next-line max-len
   INDEPENDENT_MISCONFIGURATION_ERROR = 'Service is expected to be configured as independent service but critical variables are missing',
+  // eslint-disable-next-line max-len
+  PROOF_OF_EXISTENCE_FAILED = 'There was an error while attempting to register a Proof of existence',
   BAD_REQUEST_ERROR = 'Bad request error',
   USER_ALREADY_EXISTS = 'A user with this email is already registered',
   CREATE_DID_ERROR = 'An internal server error occurred while trying to create a new did',
