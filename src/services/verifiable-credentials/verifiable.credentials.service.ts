@@ -177,8 +177,7 @@ export class VerifiableCredentialService {
     ddccCoreDataSet: DDCCCoreDataSet,
     imageContent: IContent,
     qrDescription: string
-  ): Promise<any> {
-    // ): Promise<{ deliveryId: string; txHash: string | null }> {
+  ): Promise<{ deliveryId: string; txHash: string | null }> {
     const ddccCredential = await this.assembleDDCCCredential(
       ddccCoreDataSet,
       imageContent.attachment,
