@@ -1,7 +1,7 @@
 version: '3'
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:15-bullseye
     ports:
       - '${EXPOSED_CONTAINER_TYPEORM_PORT}:${TYPEORM_PORT}'
     environment:
