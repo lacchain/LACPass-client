@@ -12,6 +12,8 @@ import {
   IDDCCCredential,
   IDDCCVerifiableCredential,
   IType1Proof,
+  IType2Proof,
+  IType2ProofConfig,
   IVerifiableCredential
 } from 'src/interfaces/verifiable-credential/ddcc.credential';
 import crypto from 'crypto';
@@ -238,7 +240,7 @@ export class VerifiableCredentialService {
     issuerDid: string,
     credentialData: ICredential
   ): Promise<IEthereumTransactionResponse> {
-    const credentialHash = this.computeCredentialHash(credentialData);
+    const credentialHash = this.computeRfc8785AndSha256(credentialData);
     let expiration = 0;
     if (credentialData && credentialData.expirationDate) {
       const d = new Date(credentialData.expirationDate).getTime();
@@ -336,7 +338,7 @@ export class VerifiableCredentialService {
     const validDays = 365 * 4;
     this.log.info(
       // eslint-disable-next-line max-len
-      `Couldn't find "assertion" key with type ${assertionRelationshipSearchKeyword} for did ${did} ... creating one for ${validDays} days`
+      `Couldn't find "assertion" key with type ${assertionRelationshipSearchKeyword} and key type ${type} for did ${did} ... creating one for ${validDays} days`
     );
     const attribute: INewJwkAttribute = {
       did,
@@ -421,7 +423,7 @@ export class VerifiableCredentialService {
       );
       throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
     }
-    this.log.info('Selecting Assertion Public Key', hexPubKey);
+    this.log.info('Selecting secp256k1 Assertion Public Key', hexPubKey);
     const pk = {
       hexPubKey,
       keyId: assertionPublicKey.id
@@ -478,7 +480,7 @@ export class VerifiableCredentialService {
       );
       throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
     }
-    this.log.info('Selecting Assertion Public Key', hexPubKey);
+    this.log.info('Selecting P-256 Assertion Public Key', hexPubKey);
     const pk = {
       hexPubKey,
       keyId: assertionPublicKey.id
@@ -802,22 +804,20 @@ export class VerifiableCredentialService {
     credential: ICredential,
     issuerDid: string
   ): Promise<IVerifiableCredential> {
-    const proof = await this.getIType1ProofAssertionMethodTemplate(
+    const proof = await this.getIType2ProofAssertionMethodTemplate(
       credential,
       issuerDid
     );
-    // TODO: add custom fields to proof
     return { ...credential, proof };
   }
 
-  computeCredentialHash(credentialData: ICredential) {
-    const credentialDataString = canonicalize(credentialData);
-    if (!credentialDataString) {
+  computeRfc8785AndSha256(data: any) {
+    const canonizedData = canonicalize(data);
+    if (!canonizedData) {
       throw new BadRequestError(ErrorsMessages.CANONICALIZE_ERROR);
     }
     return (
-      '0x' +
-      crypto.createHash('sha256').update(credentialDataString).digest('hex')
+      '0x' + crypto.createHash('sha256').update(canonizedData).digest('hex')
     );
   }
 
@@ -825,7 +825,7 @@ export class VerifiableCredentialService {
     credentialData: ICredential,
     issuerDid: string
   ): Promise<IType1Proof> {
-    const credentialHash = this.computeCredentialHash(credentialData); // TODO: !!
+    const credentialHash = this.computeRfc8785AndSha256(credentialData); // TODO: !!
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'P-256'
@@ -836,7 +836,7 @@ export class VerifiableCredentialService {
       throw new InternalServerError(ErrorsMessages.INTERNAL_SERVER_ERROR);
     }
 
-    const p256CompressedPubKey = '0x' + pubKey;
+    const p256CompressedPubKey = '0x02' + pubKey;
     const messageRequest: ISignPlainMessageByCompressedPublicKey = {
       compressedPublicKey: p256CompressedPubKey,
       message: credentialHash
@@ -854,6 +854,74 @@ export class VerifiableCredentialService {
       proofValue: proofValueResponse.signature
     };
     return type1Proof;
+  }
+
+  async getIType2ProofAssertionMethodTemplate(
+    unsecuredDocument: ICredential,
+    issuerDid: string
+  ): Promise<IType2Proof> {
+    const canonicalDocumentHash = this.computeRfc8785AndSha256(
+      unsecuredDocument
+    ).replace('0x', ''); // TODO: !!
+    const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
+      issuerDid,
+      'P-256'
+    );
+    // invariant verification:
+    const pubKey = assertionKey.hexPubKey.replace('0x', '');
+    if (!pubKey || pubKey.length !== 64) {
+      throw new InternalServerError(ErrorsMessages.INTERNAL_SERVER_ERROR);
+    }
+
+    const proofConfig: IType2ProofConfig = {
+      type: 'DataIntegrityProof',
+      proofPurpose: 'assertionMethod',
+      verificationMethod: assertionKey.keyId,
+      domain: this.domain,
+      cryptosuite: 'ecdsa-jcs-2019',
+      created: this.getDate() // TODO: verify
+    };
+
+    const proofConfigHash = this.computeRfc8785AndSha256(proofConfig).replace(
+      '0x',
+      ''
+    );
+
+    const hashData = '0x' + proofConfigHash.concat(canonicalDocumentHash);
+
+    const p256CompressedPubKey = '0x02' + pubKey;
+    const messageRequest: ISignPlainMessageByCompressedPublicKey = {
+      compressedPublicKey: p256CompressedPubKey,
+      message: hashData
+    };
+    const proofValueResponse = await this.keyManager.p256SignPlainMessage(
+      messageRequest
+    );
+    const type2Proof: IType2Proof = {
+      ...proofConfig,
+      proofValue: this.base58.encode(
+        Buffer.from(proofValueResponse.signature.replace('0x', ''), 'hex')
+      )
+    };
+    return type2Proof;
+  }
+
+  private getDate() {
+    const t = new Date();
+    const y = t.getUTCFullYear();
+    const month = this.getTwoDigitFormat(t.getUTCMonth());
+    const d = this.getTwoDigitFormat(t.getUTCDate());
+    const h = this.getTwoDigitFormat(t.getUTCHours());
+    const m = this.getTwoDigitFormat(t.getUTCMinutes());
+    const s = this.getTwoDigitFormat(t.getUTCSeconds());
+    return `${y}-${month}-${d}T${h}:${m}:${s}Z`;
+  }
+
+  private getTwoDigitFormat(el: number): string {
+    if (el < 10) {
+      return '0'.concat(el.toString());
+    }
+    return el.toString();
   }
 
   private encode() {

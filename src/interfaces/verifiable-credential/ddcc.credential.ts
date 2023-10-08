@@ -68,8 +68,22 @@ export interface IType1Proof {
   proofValue: string;
 }
 
+export interface IType2ProofConfig {
+  type: 'DataIntegrityProof';
+  cryptosuite: 'ecdsa-jcs-2019';
+  created: string;
+  proofPurpose: 'assertionMethod';
+  verificationMethod: string;
+  domain?: string;
+}
+export interface IType2Proof extends IType2ProofConfig {
+  proofValue: string;
+}
+
 export type IDDCCVerifiableCredential = IDDCCCredential & {
   proof: IType1Proof;
 };
 
-export type IVerifiableCredential = ICredential & { proof: IType1Proof };
+export type IVerifiableCredential = ICredential & {
+  proof: IType1Proof | IType2Proof;
+};
