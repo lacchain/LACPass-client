@@ -6,7 +6,8 @@ import {
   KEY_MANAGER_BASE_URL,
   log4TSProvider,
   KEY_MANAGER_SECP256K1_PLAIN_MESSAGE_SIGN,
-  KEY_MANAGER_SECP256K1_SIGN_LACCHAIN_TRANSACTION
+  KEY_MANAGER_SECP256K1_SIGN_LACCHAIN_TRANSACTION,
+  KEY_MANAGER_P256_PLAIN_MESSAGE_SIGN
 } from '../../../config';
 import { Service } from 'typedi';
 import { ErrorsMessages } from '../../../constants/errorMessages';
@@ -16,11 +17,13 @@ import {
   IDidCommService,
   IDidCommToEncryptData,
   ISignPlainMessageByAddress,
-  ISecp256k1SignatureMessageResponse,
+  ISignPlainMessageByCompressedPublicKey,
+  IECDSASignatureMessageResponse,
   Secp256k1GenericSignerService,
   ISignedTransaction,
   ILacchainTransaction,
-  Secp256k1SignLacchainTransactionService
+  Secp256k1SignLacchainTransactionService,
+  P256SignerServiceDb
 } from 'lacchain-key-manager';
 
 @Service()
@@ -31,21 +34,25 @@ export class KeyManagerService {
 
   public createDidJwt: (didJwt: IDidJwt) => Promise<string>;
   public didCommEncrypt: (args: IDidCommToEncryptData) => Promise<any>;
-  public secpSignPlainMessage: (
+  public secp256k1SignPlainMessage: (
     message: ISignPlainMessageByAddress
-  ) => Promise<ISecp256k1SignatureMessageResponse>;
+  ) => Promise<IECDSASignatureMessageResponse>;
+  public p256SignPlainMessage: (
+    message: ISignPlainMessageByCompressedPublicKey
+  ) => Promise<IECDSASignatureMessageResponse>;
   public signLacchainTransaction: (
     lacchainTransaction: ILacchainTransaction
   ) => Promise<ISignedTransaction>;
   // eslint-disable-next-line max-len
   private secp256k1SignLacchainTransactionService: Secp256k1SignLacchainTransactionService | null;
+  private p256SignPlainMessageService: P256SignerServiceDb | null;
   log = log4TSProvider.getLogger('IdentityManagerService');
   constructor() {
     if (IS_CLIENT_DEPENDENT_SERVICE !== 'true') {
       this.log.info('Configuring library usage for key manager service');
       this.createDidJwt = this.createDidJwtByLib;
       this.didCommEncrypt = this.didCommEncryptByLib;
-      this.secpSignPlainMessage = this.secpSignPlainMessageByLib;
+      this.secp256k1SignPlainMessage = this.secp256k1SignPlainMessageByLib;
 
       const S = require('lacchain-key-manager').DidJwtDbService;
       this.didJwtService = new S();
@@ -60,18 +67,26 @@ export class KeyManagerService {
       const V =
         require('lacchain-key-manager').Secp256k1SignLacchainTransactionServiceDb;
       this.secp256k1SignLacchainTransactionService = new V();
+
+      this.p256SignPlainMessage = this.p256SignPlainMessageByLib;
+      const W = require('lacchain-key-manager').P256SignerServiceDb;
+      this.p256SignPlainMessageService = new W();
     } else {
       this.log.info('Configuring key manager as external service connection');
       this.didJwtService = null;
       this.createDidJwt = this.createDidJwtByExternalService;
       this.didCommEncrypt = this.didCommEncryptByExternalService;
       this.didCommEncryptService = null;
-      this.secpSignPlainMessage = this.secpSignPlainMessageByExternalService;
+      this.secp256k1SignPlainMessage =
+        this.secp256k1SignPlainMessageByExternalService;
       this.secp256k1GenericSignerService = null;
 
       this.secp256k1SignLacchainTransactionService = null;
       this.signLacchainTransaction =
         this.signLacchainTransactionByExternalService;
+
+      this.p256SignPlainMessageService = null;
+      this.p256SignPlainMessage = this.p256SignPlainMessageByExternalService;
     }
   }
   private async createDidJwtByLib(didJwt: IDidJwt): Promise<string> {
@@ -82,10 +97,16 @@ export class KeyManagerService {
     return (await this.didCommEncryptService?.encrypt(args)) as any;
   }
 
-  private async secpSignPlainMessageByLib(
+  private async secp256k1SignPlainMessageByLib(
     message: ISignPlainMessageByAddress
-  ): Promise<ISecp256k1SignatureMessageResponse> {
+  ): Promise<IECDSASignatureMessageResponse> {
     return await this.secp256k1GenericSignerService?.signPlainMessage(message);
+  }
+
+  private async p256SignPlainMessageByLib(
+    message: ISignPlainMessageByCompressedPublicKey
+  ): Promise<IECDSASignatureMessageResponse> {
+    return await this.p256SignPlainMessageService?.signPlainMessage(message);
   }
 
   async signLacchainTransactionByLib(
@@ -138,11 +159,32 @@ export class KeyManagerService {
     return (await result.json()) as any;
   }
 
-  private async secpSignPlainMessageByExternalService(
+  private async secp256k1SignPlainMessageByExternalService(
     message: ISignPlainMessageByAddress
-  ): Promise<ISecp256k1SignatureMessageResponse> {
+  ): Promise<IECDSASignatureMessageResponse> {
     const result = await fetch(
       `${KEY_MANAGER_BASE_URL}${KEY_MANAGER_SECP256K1_PLAIN_MESSAGE_SIGN}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+      }
+    );
+    console.log('status', result.status);
+    if (result.status !== 200) {
+      console.log(await result.text());
+      throw new InternalServerError(ErrorsMessages.PLAIN_MESSAGE_SIGNING_ERROR);
+    }
+    return (await result.json()) as any;
+  }
+
+  private async p256SignPlainMessageByExternalService(
+    message: ISignPlainMessageByCompressedPublicKey
+  ): Promise<IECDSASignatureMessageResponse> {
+    const result = await fetch(
+      `${KEY_MANAGER_BASE_URL}${KEY_MANAGER_P256_PLAIN_MESSAGE_SIGN}`,
       {
         method: 'POST',
         headers: {

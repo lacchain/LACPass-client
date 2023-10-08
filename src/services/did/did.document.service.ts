@@ -67,7 +67,7 @@ export class DidDocumentService {
   static filterSecp256k1PublicKeysFromJwkAssertionKeys(
     doc: any,
     algorithm: string,
-    curve: 'secp256k1'
+    curve: 'secp256k1' | 'P-256'
   ): { id: string; publicKeyBuffer: Buffer }[] | undefined {
     const keys = doc.assertionMethod.filter(
       (ka: { crv: string; publicKeyJwk: any; type: string }) =>

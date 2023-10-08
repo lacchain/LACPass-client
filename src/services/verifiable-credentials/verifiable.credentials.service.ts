@@ -34,7 +34,10 @@ import {
 import { validateOrReject } from 'class-validator';
 import canonicalize from 'canonicalize';
 import { KeyManagerService } from '@services/external/key-manager/key-manager.service';
-import { ISignPlainMessageByAddress } from 'lacchain-key-manager';
+import {
+  ISignPlainMessageByAddress,
+  ISignPlainMessageByCompressedPublicKey
+} from 'lacchain-key-manager';
 import { MEDICINAL_PRODUCT_NAMES } from '@constants/ddcc.medicinal.code.mapper';
 import {
   IAttachment,
@@ -49,6 +52,8 @@ import { VerificationRegistry } from './verification.registry';
 import { IEthereumTransactionResponse } from 'src/interfaces/ethereum/transaction';
 import { ProofOfExistenceMode } from '@constants/poe';
 
+type keyType = 'secp256k1' | 'P-256';
+type assertionPublicKeyType = { hexPubKey: string; keyId: string };
 @Service()
 export class VerifiableCredentialService {
   private readonly base58 = require('base-x')(
@@ -68,10 +73,10 @@ export class VerifiableCredentialService {
     string,
     string
   >();
-  private assertionPublicKeys: Map<
+  private assertionPublicKeys: Map<string, assertionPublicKeyType> = new Map<
     string,
-    { hexPubKey: string; keyId: string }
-  > = new Map<string, { hexPubKey: string; keyId: string }>();
+    assertionPublicKeyType
+  >();
   private didServiceLac1: DidServiceLac1;
   private keyManager: KeyManagerService;
   private verificationRegistryService: VerificationRegistry;
@@ -291,10 +296,17 @@ export class VerifiableCredentialService {
     return Buffer.from(buffPubKey).toString('hex');
   }
 
+  /**
+   * Gets Jwk assertion keys from DIDDocument and returns the one that matches
+   * with the provided params
+   * @param {string} did - Decentralized identifier
+   * @param  {keyType} type - Type of Key: e.g. 'secp256k1', 'P-256', etc
+   * @return {Promise<assertionPublicKeyType>} - returned value
+   */
   async getOrSetOrCreateAssertionPublicKeyFromDid(
     did: string,
-    type: 'secp256k1'
-  ): Promise<{ hexPubKey: string; keyId: string }> {
+    type: keyType
+  ): Promise<assertionPublicKeyType> {
     const assertionPublicKey = this.assertionPublicKeys.get(did);
     if (assertionPublicKey) {
       return assertionPublicKey;
@@ -305,49 +317,23 @@ export class VerifiableCredentialService {
       DidDocumentService.filterSecp256k1PublicKeysFromJwkAssertionKeys(
         didDoc,
         assertionRelationshipSearchKeyword,
-        'secp256k1'
+        type
       );
+    let pk;
     if (foundAssertionPublicKeys) {
-      for (const assertionPublicKey of foundAssertionPublicKeys) {
-        // TODO: generalize find algorithm to fit with any kind of key.
-        // and apply to all methods
-        const hexPubKey =
-          '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
-        const messageRequest: ISignPlainMessageByAddress = {
-          address: computeAddress(hexPubKey),
-          messageHash:
-            '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
-        };
-        try {
-          await this.keyManager.secpSignPlainMessage(messageRequest);
-        } catch (e: any) {
-          // TODO:check in "DEPENDENT SERVICE" way
-          if (e && e.message === 'Key not found') {
-            console.log('error was', e.message);
-            this.log.info(
-              'secp256 private key related to',
-              hexPubKey,
-              ' assertion key was not found. Ignoring this key ...'
-            );
-            continue;
-          }
-          this.log.info(
-            'Unexpected error encountered from key manager, error was',
-            e
-          );
-          throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
-        }
-        this.log.info('Selecting Assertion Public Key', hexPubKey);
-        const pk = {
-          hexPubKey,
-          keyId: assertionPublicKey.id
-        };
-        this.assertionPublicKeys.set(did, pk);
-        return pk;
+      if (type === 'secp256k1') {
+        pk = await this.trySetForSecp256k1(foundAssertionPublicKeys);
+      } else if (type === 'P-256') {
+        pk = await this.trySetForP256(foundAssertionPublicKeys);
       }
     }
 
-    const validDays = 365;
+    if (pk) {
+      this.assertionPublicKeys.set(did, pk);
+      return pk;
+    }
+
+    const validDays = 365 * 4;
     this.log.info(
       // eslint-disable-next-line max-len
       `Couldn't find "assertion" key with type ${assertionRelationshipSearchKeyword} for did ${did} ... creating one for ${validDays} days`
@@ -356,7 +342,7 @@ export class VerifiableCredentialService {
       did,
       validDays,
       relation: 'asse',
-      jwkType: type
+      jwkType: type == 'P-256' ? 'secp256r1' : type
     };
 
     const response = await this.didServiceLac1.addNewJwkAttribute(attribute);
@@ -369,10 +355,11 @@ export class VerifiableCredentialService {
       DidDocumentService.filterSecp256k1PublicKeysFromJwkAssertionKeys(
         didDoc,
         assertionRelationshipSearchKeyword,
-        'secp256k1'
+        type
       )?.find(el => {
         const hexPubKey = '0x' + el.publicKeyBuffer.toString('hex');
-        return computeAddress(hexPubKey) === computeAddress(newAssertionKeyHex);
+        // eslint-disable-next-line max-len
+        return computeAddress(hexPubKey) === computeAddress(newAssertionKeyHex); // kust using as as way to compare them
       });
     if (foundAssertionPublicKey) {
       const hexPubKey = Buffer.from(
@@ -386,6 +373,118 @@ export class VerifiableCredentialService {
       return pk;
     }
     throw new BadRequestError(ErrorsMessages.VM_NOT_FOUND);
+  }
+
+  async trySetForSecp256k1(
+    assertionPublicKeys: {
+      id: string;
+      publicKeyBuffer: Buffer;
+    }[]
+  ): Promise<assertionPublicKeyType | false> {
+    for (const assertionPublicKey of assertionPublicKeys) {
+      const r = await this.verifyKeyForSecp256k1(assertionPublicKey);
+      if (!r) {
+        continue;
+      }
+      return r;
+    }
+    return false;
+  }
+
+  async verifyKeyForSecp256k1(assertionPublicKey: {
+    id: string;
+    publicKeyBuffer: Buffer;
+  }): Promise<assertionPublicKeyType | false> {
+    // TODO: generalize find algorithm to fit with any kind of key.
+    // and apply to all methods
+    const hexPubKey = '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
+    const messageRequest: ISignPlainMessageByAddress = {
+      address: computeAddress(hexPubKey),
+      message: '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
+    };
+    try {
+      await this.keyManager.secp256k1SignPlainMessage(messageRequest);
+    } catch (e: any) {
+      // TODO:check in "DEPENDENT SERVICE" way
+      if (e && e.message === 'Key not found') {
+        console.log('error was', e.message);
+        this.log.info(
+          'secp256 private key related to',
+          hexPubKey,
+          ' assertion key was not found. Ignoring this key ...'
+        );
+        return false;
+      }
+      this.log.info(
+        'Unexpected error encountered from key manager, error was',
+        e
+      );
+      throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
+    }
+    this.log.info('Selecting Assertion Public Key', hexPubKey);
+    const pk = {
+      hexPubKey,
+      keyId: assertionPublicKey.id
+    };
+    // this.assertionPublicKeys.set(did, pk);
+    return pk;
+  }
+
+  async trySetForP256(
+    assertionPublicKeys: {
+      id: string;
+      publicKeyBuffer: Buffer;
+    }[]
+  ): Promise<assertionPublicKeyType | false> {
+    for (const assertionPublicKey of assertionPublicKeys) {
+      const r = await this.verifyKeyForP256(assertionPublicKey);
+      if (!r) {
+        continue;
+      }
+      return r;
+    }
+    return false;
+  }
+
+  async verifyKeyForP256(assertionPublicKey: {
+    id: string;
+    publicKeyBuffer: Buffer;
+  }): Promise<assertionPublicKeyType | false> {
+    // TODO: generalize find algorithm to fit with any kind of key.
+    // and apply to all methods
+    const hexPubKey = '0x' + assertionPublicKey.publicKeyBuffer.toString('hex');
+    const messageRequest: ISignPlainMessageByCompressedPublicKey = {
+      compressedPublicKey:
+        // eslint-disable-next-line max-len
+        '0x02' + assertionPublicKey.publicKeyBuffer.toString('hex'), // TODO: set all pub keys with 0x02/0x04 prefixes
+      message: '0x' + crypto.createHash('sha256').update('Proof').digest('hex')
+    };
+    try {
+      await this.keyManager.p256SignPlainMessage(messageRequest);
+    } catch (e: any) {
+      // TODO:check in "DEPENDENT SERVICE" way
+      if (e && e.message === 'Key not found') {
+        console.log('error was', e.message);
+        this.log.info(
+          'secp256 private key related to',
+          hexPubKey,
+          ' assertion key was not found. Ignoring this key ...'
+        );
+        return false;
+      }
+      this.log.info(
+        'Unexpected error encountered from key manager, error was',
+        e
+      );
+      throw new BadRequestError(ErrorsMessages.INTERNAL_SERVER_ERROR);
+    }
+    this.log.info('Selecting Assertion Public Key', hexPubKey);
+    const pk = {
+      hexPubKey,
+      keyId: assertionPublicKey.id
+    };
+    // this.assertionPublicKeys.set(did, pk);
+    return pk;
   }
 
   async getAuthAddressFromDid(issuerDid: string): Promise<string> {
@@ -726,19 +825,23 @@ export class VerifiableCredentialService {
     credentialData: ICredential,
     issuerDid: string
   ): Promise<IType1Proof> {
-    const credentialHash = this.computeCredentialHash(credentialData);
+    const credentialHash = this.computeCredentialHash(credentialData); // TODO: !!
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
-      'secp256k1'
+      'P-256'
     );
-    const hexPubKey = assertionKey.hexPubKey.startsWith('0x')
-      ? assertionKey.hexPubKey
-      : '0x' + assertionKey.hexPubKey;
-    const messageRequest: ISignPlainMessageByAddress = {
-      address: computeAddress(hexPubKey),
-      messageHash: credentialHash
+    // invariant verification:
+    const pubKey = assertionKey.hexPubKey.replace('0x', '');
+    if (!pubKey || pubKey.length !== 64) {
+      throw new InternalServerError(ErrorsMessages.INTERNAL_SERVER_ERROR);
+    }
+
+    const p256CompressedPubKey = '0x' + pubKey;
+    const messageRequest: ISignPlainMessageByCompressedPublicKey = {
+      compressedPublicKey: p256CompressedPubKey,
+      message: credentialHash
     };
-    const proofValueResponse = await this.keyManager.secpSignPlainMessage(
+    const proofValueResponse = await this.keyManager.p256SignPlainMessage(
       messageRequest
     );
     // TODO: add onchain proof

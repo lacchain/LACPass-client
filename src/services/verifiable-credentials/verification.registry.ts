@@ -155,10 +155,10 @@ export class VerificationRegistry {
 
     const messageRequest: ISignPlainMessageByAddress = {
       address: controllerAddressResponse.controller,
-      messageHash: typeDataHash
+      message: typeDataHash
     };
     try {
-      const { signature } = await this.keyManager.secpSignPlainMessage(
+      const { signature } = await this.keyManager.secp256k1SignPlainMessage(
         messageRequest
       );
       const sig = splitSignature(signature);
