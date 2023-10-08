@@ -8,7 +8,7 @@ import {
 } from 'lacchain-trust';
 import { INewJwkAttribute, EcJwk } from 'lacchain-identity';
 import {
-  ICredential,
+  ICredentialV2,
   IDDCCCredential,
   IDDCCVerifiableCredential,
   IType1Proof,
@@ -234,16 +234,16 @@ export class VerifiableCredentialService {
    * Leaves a proof of existence. Resolves the controller of the issuer did and signs
    * the proof of existence with its associated private key
    * @param {string} issuerDid
-   * @param {ICredential} credentialData
+   * @param {ICredentialV2} credentialData
    */
   async addProofOfExistence(
     issuerDid: string,
-    credentialData: ICredential
+    credentialData: ICredentialV2
   ): Promise<IEthereumTransactionResponse> {
     const credentialHash = this.computeRfc8785AndSha256(credentialData);
     let expiration = 0;
-    if (credentialData && credentialData.expirationDate) {
-      const d = new Date(credentialData.expirationDate).getTime();
+    if (credentialData && credentialData.validUntil) {
+      const d = new Date(credentialData.validUntil).getTime();
       if (d < new Date().getTime()) {
         this.log.info(
           // eslint-disable-next-line max-len
@@ -251,7 +251,7 @@ export class VerifiableCredentialService {
         );
       } else {
         expiration = Math.floor(
-          new Date(credentialData.expirationDate).getTime() / 1000
+          new Date(credentialData.validUntil).getTime() / 1000
         );
       }
     }
@@ -620,7 +620,7 @@ export class VerifiableCredentialService {
   async new(): Promise<IDDCCCredential> {
     return {
       '@context': [
-        'https://www.w3.org/2018/credentials/v1',
+        'https://www.w3.org/ns/credentials/v2',
         // eslint-disable-next-line max-len
         'https://credentials-library.lacchain.net/credentials/health/vaccination/v3'
       ],
@@ -635,7 +635,7 @@ export class VerifiableCredentialService {
       // eslint-disable-next-line quote-props
       identifier: '',
       // eslint-disable-next-line quote-props
-      issuanceDate: new Date().toJSON(),
+      validFrom: this.getUtcDate(),
       // eslint-disable-next-line quote-props
       credentialSubject: {
         type: 'VaccinationEvent',
@@ -700,9 +700,9 @@ export class VerifiableCredentialService {
 
     if (certificate && certificate.period && certificate.period.start) {
       try {
-        ddccCredential.issuanceDate = new Date(
-          certificate.period.start
-        ).toJSON();
+        ddccCredential.validFrom = this.getDate(
+          new Date(certificate.period.start)
+        );
       } catch (e) {
         this.log.info(
           'invalid certificate start date, defaulting to current date'
@@ -712,9 +712,9 @@ export class VerifiableCredentialService {
 
     if (certificate && certificate.period && certificate.period.end) {
       try {
-        ddccCredential.expirationDate = new Date(
-          certificate.period.end
-        ).toJSON();
+        ddccCredential.validUntil = this.getDate(
+          new Date(certificate.period.end)
+        );
       } catch (e) {
         this.log.info('invalid certificate end date, leaving it blank');
       }
@@ -729,6 +729,7 @@ export class VerifiableCredentialService {
     ddccCredential.credentialSubject.countryOfVaccination =
       vaccination.country.code;
     ddccCredential.credentialSubject.dateOfVaccination = vaccination.date;
+
     if (vaccination.centre) {
       ddccCredential.credentialSubject.administeringCentre = vaccination.centre;
     }
@@ -740,8 +741,16 @@ export class VerifiableCredentialService {
       ddccCredential.credentialSubject.totalDoses = vaccination.totalDoses;
     }
     if (vaccination.validFrom) {
-      ddccCredential.credentialSubject.nextVaccinationDate =
-        vaccination.validFrom;
+      try {
+        ddccCredential.credentialSubject.validFrom = this.getDate(
+          new Date(vaccination.validFrom)
+        );
+      } catch (e) {
+        this.log.info(
+          // eslint-disable-next-line max-len
+          'Invalid certificate "validFrom" value ... skipping the update of this value in the credential'
+        );
+      }
     }
     ddccCredential.credentialSubject.order = vaccination.dose.toString();
     // recipient
@@ -801,7 +810,7 @@ export class VerifiableCredentialService {
    * @return {Promise<IDDCCVerifiableCredential>} A DDCC Verifiable credential
    */
   async addProof(
-    credential: ICredential,
+    credential: ICredentialV2,
     issuerDid: string
   ): Promise<IVerifiableCredential> {
     const proof = await this.getIType2ProofAssertionMethodTemplate(
@@ -822,7 +831,7 @@ export class VerifiableCredentialService {
   }
 
   async getIType1ProofAssertionMethodTemplate(
-    credentialData: ICredential,
+    credentialData: ICredentialV2,
     issuerDid: string
   ): Promise<IType1Proof> {
     const credentialHash = this.computeRfc8785AndSha256(credentialData); // TODO: !!
@@ -857,7 +866,7 @@ export class VerifiableCredentialService {
   }
 
   async getIType2ProofAssertionMethodTemplate(
-    unsecuredDocument: ICredential,
+    unsecuredDocument: ICredentialV2,
     issuerDid: string
   ): Promise<IType2Proof> {
     const canonicalDocumentHash = this.computeRfc8785AndSha256(
@@ -879,7 +888,7 @@ export class VerifiableCredentialService {
       verificationMethod: assertionKey.keyId,
       domain: this.domain,
       cryptosuite: 'ecdsa-jcs-2019',
-      created: this.getDate() // TODO: verify
+      created: this.getUtcDate() // TODO: verify
     };
 
     const proofConfigHash = this.computeRfc8785AndSha256(proofConfig).replace(
@@ -906,14 +915,23 @@ export class VerifiableCredentialService {
     return type2Proof;
   }
 
-  private getDate() {
-    const t = new Date();
+  private getUtcDate(t = new Date()) {
     const y = t.getUTCFullYear();
-    const month = this.getTwoDigitFormat(t.getUTCMonth());
+    const month = this.getTwoDigitFormat(t.getUTCMonth() + 1);
     const d = this.getTwoDigitFormat(t.getUTCDate());
     const h = this.getTwoDigitFormat(t.getUTCHours());
     const m = this.getTwoDigitFormat(t.getUTCMinutes());
     const s = this.getTwoDigitFormat(t.getUTCSeconds());
+    return `${y}-${month}-${d}T${h}:${m}:${s}Z`;
+  }
+
+  private getDate(t: Date) {
+    const y = t.getUTCFullYear();
+    const month = this.getTwoDigitFormat(t.getMonth() + 1);
+    const d = this.getTwoDigitFormat(t.getDate());
+    const h = this.getTwoDigitFormat(t.getHours());
+    const m = this.getTwoDigitFormat(t.getMinutes());
+    const s = this.getTwoDigitFormat(t.getSeconds());
     return `${y}-${month}-${d}T${h}:${m}:${s}Z`;
   }
 
