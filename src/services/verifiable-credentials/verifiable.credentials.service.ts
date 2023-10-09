@@ -56,6 +56,7 @@ import { ProofOfExistenceMode } from '@constants/poe';
 
 type keyType = 'secp256k1' | 'P-256';
 type assertionPublicKeyType = { hexPubKey: string; keyId: string };
+type credentialFingerPrint = { hash: string; digest: string };
 @Service()
 export class VerifiableCredentialService {
   private readonly base58 = require('base-x')(
@@ -191,9 +192,23 @@ export class VerifiableCredentialService {
       qrDescription
     );
     const { issuerDid, receiverDid } = ddccCoreDataSet;
+
+    const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
+      issuerDid,
+      'P-256'
+    );
+    const proofConfig: IType2ProofConfig = {
+      type: 'DataIntegrityProof',
+      proofPurpose: 'assertionMethod',
+      verificationMethod: assertionKey.keyId,
+      domain: this.domain,
+      cryptosuite: 'ecdsa-jcs-2019',
+      created: this.getUtcDate()
+    };
     const ddccVerifiableCredential = (await this.addProof(
       ddccCredential,
-      issuerDid
+      issuerDid,
+      proofConfig
     )) as IDDCCVerifiableCredential;
     const message = JSON.stringify(ddccVerifiableCredential);
     const authAddress = await this.getAuthAddressFromDid(issuerDid);
@@ -203,10 +218,15 @@ export class VerifiableCredentialService {
     let issueTxResponse: IEthereumTransactionResponse | null = null;
     // TODO: add environment varible to configure PoE behavior
     if (this.proofOfExistenceMode !== ProofOfExistenceMode.DISABLED) {
+      const credentialHash = this.computeEcdsaJcs2019CredentialHash(
+        ddccCredential,
+        proofConfig
+      ).digest;
       try {
         issueTxResponse = await this.addProofOfExistence(
           issuerDid,
-          ddccCredential
+          ddccCredential.validUntil,
+          credentialHash
         );
       } catch (e) {
         this.log.info('Error adding proof of existence', e);
@@ -234,30 +254,31 @@ export class VerifiableCredentialService {
    * Leaves a proof of existence. Resolves the controller of the issuer did and signs
    * the proof of existence with its associated private key
    * @param {string} issuerDid
-   * @param {ICredentialV2} credentialData
+   * @param {string} validUntil
+   * @param {string} digest - digest of 32 bytes representing the fingerprint
+   * of credentialDat
    */
   async addProofOfExistence(
     issuerDid: string,
-    credentialData: ICredentialV2
+    validUntil: string | undefined,
+    digest: string
   ): Promise<IEthereumTransactionResponse> {
-    const credentialHash = this.computeRfc8785AndSha256(credentialData);
     let expiration = 0;
-    if (credentialData && credentialData.validUntil) {
-      const d = new Date(credentialData.validUntil).getTime();
+    if (validUntil) {
+      const d = new Date(validUntil).getTime();
       if (d < new Date().getTime()) {
         this.log.info(
           // eslint-disable-next-line max-len
           'Credential is expired, setting onchain expiration date to zero => never expires'
         );
       } else {
-        expiration = Math.floor(
-          new Date(credentialData.validUntil).getTime() / 1000
-        );
+        expiration = Math.floor(new Date(validUntil).getTime() / 1000);
       }
     }
+    console.log('digest is', digest);
     return this.verificationRegistryService.verifyAndIssueSigned(
       issuerDid,
-      credentialHash,
+      digest,
       expiration
     );
   }
@@ -807,15 +828,18 @@ export class VerifiableCredentialService {
    * Adds proof to a Credential of type DDCC
    * @param {IDDCCCredential} credential - Credential without proof
    * @param {string} issuerDid - Issuing entity
+   * @param {IType2ProofConfig} proofConfig - The proof configuration
    * @return {Promise<IDDCCVerifiableCredential>} A DDCC Verifiable credential
    */
   async addProof(
     credential: ICredentialV2,
-    issuerDid: string
+    issuerDid: string,
+    proofConfig: IType2ProofConfig
   ): Promise<IVerifiableCredential> {
     const proof = await this.getIType2ProofAssertionMethodTemplate(
       credential,
-      issuerDid
+      issuerDid,
+      proofConfig
     );
     return { ...credential, proof };
   }
@@ -834,7 +858,7 @@ export class VerifiableCredentialService {
     credentialData: ICredentialV2,
     issuerDid: string
   ): Promise<IType1Proof> {
-    const credentialHash = this.computeRfc8785AndSha256(credentialData); // TODO: !!
+    const credentialHash = this.computeRfc8785AndSha256(credentialData);
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'P-256'
@@ -865,13 +889,28 @@ export class VerifiableCredentialService {
     return type1Proof;
   }
 
-  async getIType2ProofAssertionMethodTemplate(
+  computeEcdsaJcs2019CredentialHash(
     unsecuredDocument: ICredentialV2,
-    issuerDid: string
-  ): Promise<IType2Proof> {
+    proofConfig: IType2ProofConfig
+  ): credentialFingerPrint {
     const canonicalDocumentHash = this.computeRfc8785AndSha256(
       unsecuredDocument
-    ).replace('0x', ''); // TODO: !!
+    ).replace('0x', '');
+    const proofConfigHash = this.computeRfc8785AndSha256(proofConfig).replace(
+      '0x',
+      ''
+    );
+    const credentialHash = proofConfigHash.concat(canonicalDocumentHash);
+    const digest =
+      '0x' + crypto.createHash('sha256').update(credentialHash).digest('hex');
+    return { hash: credentialHash, digest };
+  }
+
+  async getIType2ProofAssertionMethodTemplate(
+    unsecuredDocument: ICredentialV2,
+    issuerDid: string,
+    proofConfig: IType2ProofConfig
+  ): Promise<IType2Proof> {
     const assertionKey = await this.getOrSetOrCreateAssertionPublicKeyFromDid(
       issuerDid,
       'P-256'
@@ -881,27 +920,17 @@ export class VerifiableCredentialService {
     if (!pubKey || pubKey.length !== 64) {
       throw new InternalServerError(ErrorsMessages.INTERNAL_SERVER_ERROR);
     }
-
-    const proofConfig: IType2ProofConfig = {
-      type: 'DataIntegrityProof',
-      proofPurpose: 'assertionMethod',
-      verificationMethod: assertionKey.keyId,
-      domain: this.domain,
-      cryptosuite: 'ecdsa-jcs-2019',
-      created: this.getUtcDate() // TODO: verify
-    };
-
-    const proofConfigHash = this.computeRfc8785AndSha256(proofConfig).replace(
-      '0x',
-      ''
+    const hashData = this.computeEcdsaJcs2019CredentialHash(
+      unsecuredDocument,
+      proofConfig
     );
 
-    const hashData = proofConfigHash.concat(canonicalDocumentHash);
+    console.log('during proof add process', hashData.digest);
 
     const p256CompressedPubKey = '0x02' + pubKey;
     const messageRequest: ISignPlainMessageByCompressedPublicKey = {
       compressedPublicKey: p256CompressedPubKey,
-      message: hashData,
+      message: hashData.hash,
       encoding: 'hex'
     };
     const proofValueResponse = await this.keyManager.p256SignPlainMessage(
