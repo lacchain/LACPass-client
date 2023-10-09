@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.0.8
+
+* Update credential schema version to https://www.w3.org/ns/credentials/v2
+* Add support for ecdsa-jcs-2019 cryptographic suite for verifiable credentials
+
 ### 0.0.7
 
 * Add PoE for emitted credentials.
