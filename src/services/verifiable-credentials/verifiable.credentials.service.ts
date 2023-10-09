@@ -896,12 +896,13 @@ export class VerifiableCredentialService {
       ''
     );
 
-    const hashData = '0x' + proofConfigHash.concat(canonicalDocumentHash);
+    const hashData = proofConfigHash.concat(canonicalDocumentHash);
 
     const p256CompressedPubKey = '0x02' + pubKey;
     const messageRequest: ISignPlainMessageByCompressedPublicKey = {
       compressedPublicKey: p256CompressedPubKey,
-      message: hashData
+      message: hashData,
+      encoding: 'hex'
     };
     const proofValueResponse = await this.keyManager.p256SignPlainMessage(
       messageRequest
