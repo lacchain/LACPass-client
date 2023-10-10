@@ -1,14 +1,14 @@
-export interface ICredential {
+export interface ICredentialV2 {
   '@context': string[];
   id: string;
   type: string[] | string;
   issuer: string;
   name: string;
   identifier: string;
-  issuanceDate: string;
-  expirationDate?: string;
+  validFrom: string;
+  validUntil?: string;
 }
-export interface IDDCCCredential extends ICredential {
+export interface IDDCCCredential extends ICredentialV2 {
   credentialSubject: IDDCCCredentialSubject;
 }
 
@@ -68,8 +68,22 @@ export interface IType1Proof {
   proofValue: string;
 }
 
+export interface IType2ProofConfig {
+  type: 'DataIntegrityProof';
+  cryptosuite: 'ecdsa-jcs-2019';
+  created: string;
+  proofPurpose: 'assertionMethod';
+  verificationMethod: string;
+  domain?: string;
+}
+export interface IType2Proof extends IType2ProofConfig {
+  proofValue: string;
+}
+
 export type IDDCCVerifiableCredential = IDDCCCredential & {
-  proof: IType1Proof;
+  proof: IType2Proof;
 };
 
-export type IVerifiableCredential = ICredential & { proof: IType1Proof };
+export type IVerifiableCredential = ICredentialV2 & {
+  proof: IType2Proof;
+};
