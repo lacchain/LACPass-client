@@ -275,7 +275,6 @@ export class VerifiableCredentialService {
         expiration = Math.floor(new Date(validUntil).getTime() / 1000);
       }
     }
-    console.log('digest is', digest);
     return this.verificationRegistryService.verifyAndIssueSigned(
       issuerDid,
       digest,
@@ -924,8 +923,6 @@ export class VerifiableCredentialService {
       unsecuredDocument,
       proofConfig
     );
-
-    console.log('during proof add process', hashData.digest);
 
     const p256CompressedPubKey = '0x02' + pubKey;
     const messageRequest: ISignPlainMessageByCompressedPublicKey = {

@@ -59,8 +59,8 @@ export class VerificationRegistry {
     );
     this.domainSeparator = keccak256(eds);
     this.ISSUE_TYPEHASH = keccak256(
-      toUtf8Bytes('Issue(bytes32 digest, uint256 exp, address identity)')
-    ); // OK -> 0xaaf414ba23a8cfcf004a7f75188441e59666f98d85447b5665cf04052d8e2bc3
+      toUtf8Bytes('Issue(bytes32 digest,uint256 exp,address identity)')
+    );
     this.didServiceLac1 = new DidServiceLac1();
     this.keyManager = new KeyManagerService();
     const rpcUrl = getRpcUrl();

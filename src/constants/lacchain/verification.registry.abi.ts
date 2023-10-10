@@ -377,6 +377,11 @@ export const VERIFICATION_REGISTRY_ABI = [
         internalType: 'bool',
         name: 'onHold',
         type: 'bool'
+      },
+      {
+        internalType: 'bool',
+        name: 'isRevoked',
+        type: 'bool'
       }
     ],
     stateMutability: 'view',
@@ -396,30 +401,6 @@ export const VERIFICATION_REGISTRY_ABI = [
         internalType: 'address',
         name: '',
         type: 'address'
-      }
-    ],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'issuer',
-        type: 'address'
-      },
-      {
-        internalType: 'bytes32',
-        name: 'digest',
-        type: 'bytes32'
-      }
-    ],
-    name: 'isValidCredential',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: 'value',
-        type: 'bool'
       }
     ],
     stateMutability: 'view',

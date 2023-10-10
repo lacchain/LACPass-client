@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.0.9
+
+* Update verification Registry default contract address for OpenProtest network to '0x64CaA0fC7E0C1f051078da9525A31D00dB1F50eE' (since this considers isRevoked flag on queried for a digest issued by some entity)
 ### 0.0.8
 
 * Update credential schema version to https://www.w3.org/ns/credentials/v2
