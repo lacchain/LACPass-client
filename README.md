@@ -30,18 +30,25 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 
 
 `$ ./client-helper.sh`
+
+
 3. Now enter the URL of the lacpass-lacchain verified in the previous section as shown in the following prompt
+
+
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/apiURL.png)
+
 4. The following menu is presented:
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/CLIMainMenu.png)
 
 5. If you don't have a PKI or don't have any signing key to attest health certificates then you can create a Self-Signed Certificate (SSC). If this is the case, type 'SSC' and enter the required information.
 - The end of this process will create a subdirectory named `/certs` inside the directory you are running the script:
+
+
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/certsDir.png)
 
 * NOTE: DSC.key will be the private key used to sign Health Certificates. For that:
-* You can copy the DSC.key into the directory cert-data located in the root directory of your IPS-national-backend repository.
-* Rename the new copy of DSC.crt to priv.pem
+⋅⋅⋅You can copy the DSC.key into the directory cert-data located in the root directory of your IPS-national-backend repository.
+⋅⋅⋅Rename the new copy of DSC.crt to priv.pem
 
 6. Next, create a decentralized identifier [DID](https://w3c.github.io/did-core), type "CD" in the CLI main menu, and a DID will be created, for instance:
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/didtxtfile.png)
