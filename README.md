@@ -47,8 +47,9 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/certsDir.png)
 
 * NOTE: DSC.key will be the private key used to sign Health Certificates. For that:
-⋅⋅⋅You can copy the DSC.key into the directory cert-data located in the root directory of your IPS-national-backend repository.
-⋅⋅⋅Rename the new copy of DSC.crt to priv.pem
+
+   You can copy the DSC.key into the directory cert-data located in the root directory of your IPS-national-backend repository.
+   Rename the new copy of DSC.crt to priv.pem
 
 6. Next, create a decentralized identifier [DID](https://w3c.github.io/did-core), type "CD" in the CLI main menu, and a DID will be created, for instance:
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/didtxtfile.png)
