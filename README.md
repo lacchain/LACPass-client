@@ -105,6 +105,14 @@ Where:
 
 NOTE: A full example with the required payload is available at https://github.com/lacchain/LACPass-client/blob/master/docs/Credential-Sending.md
 
+### LACPass Verifier
+
+LACPass 
+
+LACPass Verifier is the last component used to verify DDCC-compliant health certificates. This component is made up of two subcomponents:
+
+1. LACPass-front-verifier: This is a full front-end component that needs to be connected to LACPass-trusted-List to check the validity of health certificates. The repository is available at https://github.com/lacchain/LACPass-front-verifier
+2. LACPass-trusted-list: This is the backend API component which cryptographically verifies certificate issuers and decodes data returning it alongside the certificate health validity. Access to this repository is available at https://github.com/lacchain/LACPass-trusted-list
 
 
 ## Changelog
