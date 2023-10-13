@@ -19,7 +19,7 @@ This section contains the steps to run the LACPass Client component, and specifi
 1. Running the lacpass-lacchain component from IPS-national-backend will expose the service at port 3010
 2. Verify the lacpass-lacchain component is running either checking the logs or just performing a telnet command in a bash shell: 
 
-![](https://github.com/LACPass-client/docs/examples/telnet3010.png)
+![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/telnet3010.png)
 
 ### Running Setup/Onboard steps
 
