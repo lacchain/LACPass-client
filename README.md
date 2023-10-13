@@ -32,7 +32,8 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/CLIMainMenu.png)
 
 5. If you don't have a PKI or don't have any signing key to attest health certificates then you can create a Self-Signed Certificate "SSC". Type that if needed and enter the required information.
-- The end of this process will create a directory named "cert" inside the directory you are running the script:
+- The end of this process will create a subdirectory named "certS" inside the directory you are running the script:
+![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/certsDir.png)
 
 * NOTE: DSC.key will be the private key used to sign Health Certificates. For that:
 * You can copy the DSC.key into the directory cert-data located in the root directory of your IPS-national-backend repository.
@@ -107,12 +108,12 @@ NOTE: A full example with the required payload is available at https://github.co
 
 ### LACPass Verifier
 
-LACPass 
-
 LACPass Verifier is the last component used to verify DDCC-compliant health certificates. This component is made up of two subcomponents:
 
 1. LACPass-front-verifier: This is a full front-end component that needs to be connected to LACPass-trusted-List to check the validity of health certificates. The repository is available at https://github.com/lacchain/LACPass-front-verifier
 2. LACPass-trusted-list: This is the backend API component which cryptographically verifies certificate issuers and decodes data returning it alongside the certificate health validity. Access to this repository is available at https://github.com/lacchain/LACPass-trusted-list
+
+NOTE: A fully runnning instance of LACPass Verifier can be found at https://lacpass.lacchain.net/
 
 
 ## Changelog
