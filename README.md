@@ -38,7 +38,22 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 
 6. Next, create a DID, type "CD" in the CLI main menu, and a DID will be created, for instance:
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/didtxtfile.png)
+
 Just as a reference, the created DID (Decentralized Identifier) will be saved in a file named "did.txt" 
+
+7. Now it is the time to associate the DID you just created with the X.509 certificate, that you can use to sign Health Certificates. Type "AX" in the CLI main menu.
+* Enter the path where the X.509 public key is located, for example if you run step 5, then the path will be:
+![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/X509path.png)
+
+* After pressing enter you should get the following successful message:
+![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/didx509association.png)
+
+8. Create a manager. Type "CM" in the CLI main menu.
+*  Enter the number of days to consider the manager to be created as valid, for example: 1000; as shown in the following figure. Suggested: do not enter a number less than 365 days.
+
+![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/creatingManager.png)
+
+
 
 ## Changelog
 - [Changelog](./CHANGELOG.md)
