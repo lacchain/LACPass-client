@@ -38,6 +38,8 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/apiURL.png)
 
 4. The following menu is presented:
+
+
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/CLIMainMenu.png)
 
 5. If you don't have a PKI or don't have any signing key to attest health certificates then you can create a Self-Signed Certificate (SSC). If this is the case, type 'SSC' and enter the required information.
@@ -54,7 +56,7 @@ It is time to run the CLI (Client helper executable script) to setup your DID an
 6. Next, create a decentralized identifier [DID](https://w3c.github.io/did-core), type "CD" in the CLI main menu, and a DID will be created, for instance:
 ![](https://github.com/lacchain/LACPass-client/blob/master/docs/examples/didtxtfile.png)
 
-Just as a reference, the created DID (Decentralized Identifier) will be saved in a file named "did.txt" 
+   * Just as a reference, the created DID (Decentralized Identifier) will be saved in a file named "did.txt" 
 
 7. Now it is the time to associate the DID you just created with the X.509 certificate, that you can use to sign Health Certificates. Type "AX" in the CLI main menu.
 * Enter the path where the X.509 public key is located, for example if you run step 5, then the path will be:
