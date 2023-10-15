@@ -1,6 +1,6 @@
 {
   "name": "lacpass-client",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Rest api for lacpass Client",
   "license": "MIT",
   "scripts": {
@@ -81,7 +81,7 @@
     "form-data": "^4.0.0",
     "helmet": "^5.0.2",
     "jsonwebtoken": "^9.0.0",
-    "lacchain-trust": "^0.0.6",
+    "lacchain-trust": "^0.0.7",
     "morgan": "^1.10.0",
     "multer": "^1.4.4",
     "nodemailer": "^6.7.3",
