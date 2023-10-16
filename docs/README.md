@@ -1,13 +1,7 @@
-# LACPass Client
+# LACPass Client component
 
-## Getting Started
+## Summary  
 
-- [Configuration Guide](docs/tech/configuration.md)
-- [API Usage](docs/API-Guide.md)
-
-## LACPass Client component 
-
-### Summary
 The LACCPass Client component allows Ministries of Health to handle the onboarding, as well as the issuance and delivery of health certificates to patients.
 This section describes the steps to run the LACPass Client component, and specifies how to use the endpoints.
 
@@ -130,6 +124,11 @@ LACPass Verifier is the last component used to verify DDCC-compliant health cert
 
 NOTE: A fully runnning instance of LACPass Verifier can be found at https://lacpass.lacchain.net/
 
+
+## Getting Started
+
+- [Configuration Guide](docs/tech/configuration.md)
+- [API Usage](docs/API-Guide.md)
 
 ## Changelog
 - [Changelog](./CHANGELOG.md)
