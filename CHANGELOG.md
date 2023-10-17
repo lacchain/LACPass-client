@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.0.10
+### 0.0.11
 
 ### Bug Fixes
 * Fixes incorrect encoded value for 'domain' attribute in proof.

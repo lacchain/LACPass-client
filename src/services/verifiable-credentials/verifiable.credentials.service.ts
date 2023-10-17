@@ -984,7 +984,6 @@ export class VerifiableCredentialService {
       // eslint-disable-next-line max-len
       this.hex.decode(CHAIN_ID.replace('0x', ''), 'hex') // the same as Buffer.from(evenHexWithout0x, 'hex')
     ];
-    console.log('payload without checksum', payload);
     payload.push(this.checksum(payload));
     return this.base58.encode(Buffer.concat(payload));
   }
