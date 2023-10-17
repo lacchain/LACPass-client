@@ -59,6 +59,7 @@ type assertionPublicKeyType = { hexPubKey: string; keyId: string };
 type credentialFingerPrint = { hash: string; digest: string };
 @Service()
 export class VerifiableCredentialService {
+  private readonly hex = require('base-x')('0123456789abcdef');
   private readonly base58 = require('base-x')(
     '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
   );
@@ -980,7 +981,8 @@ export class VerifiableCredentialService {
       Buffer.from(verificationRegistryContractAddress.replace('0x', ''), 'hex'),
       Buffer.from(publicDirectoryContractAddress.replace('0x', ''), 'hex'),
       Buffer.from(chainOfTrustContractAddress.replace('0x', ''), 'hex'),
-      Buffer.from(CHAIN_ID.replace('0x', ''), 'hex')
+      // eslint-disable-next-line max-len
+      this.hex.decode(CHAIN_ID.replace('0x', ''), 'hex') // the same as Buffer.from(evenHexWithout0x, 'hex')
     ];
     payload.push(this.checksum(payload));
     return this.base58.encode(Buffer.concat(payload));

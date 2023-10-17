@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.0.11
+
+### Bug Fixes
+* Fixes incorrect encoded value for 'domain' attribute in proof.
+* Update lacchain trust dependency to version 0.0.7 (fix revoke jwk case)
+
 ### 0.0.9
 
 * Update verification Registry default contract address for OpenProtest network to '0x64CaA0fC7E0C1f051078da9525A31D00dB1F50eE' (since this considers isRevoked flag on queried for a digest issued by some entity)
