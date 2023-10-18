@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "DIDComm-js": "git+https://github.com/decentralized-identity/DIDComm-js.git",
-    "aws-sdk": "^2.1116.0",
+    "aws-sdk": "^2.1445.0",
     "base-x": "^4.0.0",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.0",
